@@ -65,7 +65,7 @@ FDistrict::FDistrict()
         }
     }
     // A walkable shopping lane opens onto the foot of the market ramp.
-    for (int X : {160, 175, 190, 205, 220})
+    for (int X : MarketStallColumns)
         for (int Y : {-305,-279})
             Blocks.push_back({double(X),double(Y),8.4,5.0,2.45,EBuilding::MarketStall});
     // Platforms flank an open concourse beside the transit ramp.

@@ -30,6 +30,7 @@ namespace
             if (!bPrepared)
             {
                 IFileManager::Get().MakeDirectory(*Folder,true);
+                PriorCapture = IFileManager::Get().GetTimeStamp(*File);
                 if (Shot == 0)
                 {
                     OriginalTarget = PC->GetViewTarget();
@@ -56,7 +57,8 @@ namespace
                 return false;
             }
             if (FScreenshotRequest::IsScreenshotRequested() && FPlatformTime::Seconds()-Started < 20.0) return false;
-            if (IFileManager::Get().FileSize(*File) <= 0) Test->AddError(TEXT("Missing rendered view: ") + File);
+            if (IFileManager::Get().FileSize(*File) <= 0 || IFileManager::Get().GetTimeStamp(*File)<=PriorCapture)
+                Test->AddError(TEXT("A fresh rendered view was not saved: ") + File);
             bPrepared = bRequested = false;
             if (++Shot < 4) return false;
             PC->SetViewTarget(OriginalTarget.Get());
@@ -70,6 +72,7 @@ namespace
         TWeakObjectPtr<ACameraActor> Camera;
         FAutomationTestBase* Test;
         double Started;
+        FDateTime PriorCapture;
         int Shot = 0;
         bool bPrepared = false, bRequested = false;
     };

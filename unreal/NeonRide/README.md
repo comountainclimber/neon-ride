@@ -26,6 +26,7 @@ Release the throttle to coast. Brake to park and use steering to turn around, ev
 - `Skyway.*` builds the film's 300 m straight, 90 m curvature transition and 340 m-radius left curve, plus a connected lower district.
 - `FilmArt.*` and `FilmDistrict.*` place the film bike, mirrored gloves, street vehicles, eight flying cars, skyline towers and roadside props. Simple geometry defines the drivable surfaces and street-block collisions.
 - `TrafficRun.*` handles street traffic. `NeonRideGameMode.*` supplies spawn, light, location display and map.
+- The bike's physical instrument panel uses the original glyph sheet. The speed arc, horizon and traffic blips respond to the ride. The headlight illuminates the wet street ahead.
 
 Run the `NeonRide.Exploration` automation group in a standalone game session to check controls, ramp traversal, vehicle occupancy, map toggle and camera behavior. The Blender film and `UNREAL_HANDOFF.md` on the repository's main branch are the visual references for the art pass.
 

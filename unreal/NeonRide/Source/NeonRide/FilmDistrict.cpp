@@ -48,12 +48,31 @@ void AFilmDistrict::Populate(ASkyway* Skyway)
         const FVector Base(300 + Radius * FMath::Cos(Angle), -310 + Radius * FMath::Sin(Angle), -160);
         AddModel(Towers[I % 3], Base * 100, FRotator(0, Random.FRandRange(-175.f, 175.f), 0), Random.FRandRange(28000.f, 61000.f));
     }
+    // The closer rows pass the rider at a visibly different speed from the distant skyline.
+    for (int Row = 0; Row < 2; ++Row)
+        for (int I = 0; I < 22; ++I)
+        {
+            const double X = -375 + I * 72 + Random.FRandRange(-18.f,18.f);
+            const double Y = Row ? -850 - Random.FRandRange(0.f,70.f) : 85 + Random.FRandRange(0.f,140.f);
+            AddModel(Towers[(I+Row)%3],FVector(X,Y,-160)*100,FRotator(0,Random.FRandRange(0.f,180.f),0),
+                Random.FRandRange(21500.f,39000.f));
+        }
     int BlockIndex = 0;
     for (const auto& B : Road->GetDistrict().Buildings())
     {
         if (B.Kind != NeonRide::EBuilding::CityBlock) continue;
         const FVector Roof = FVector(B.X, B.Y, NeonRide::FDistrict::TerraceZ + B.Height) * 100;
-        if (BlockIndex % 4 == 0) AddModel(TEXT("building_crown"), Roof, FRotator::ZeroRotator, 2300);
+        if ((BlockIndex%3==1 || BlockIndex%5==0) && B.X>75)
+        {
+            bool UnderRoad = false;
+            for (int S=0; S<=1100; S+=15)
+            {
+                const FVector Deck = Road->FrameAt(S).GetRelativeTransform(Road->GetActorTransform()).GetLocation();
+                if (FVector::DistSquared2D(Deck,Roof)<FMath::Square(4100.0)) { UnderRoad=true; break; }
+            }
+            if (!UnderRoad) AddModel(Towers[BlockIndex%3],Roof,FRotator(0,90*(BlockIndex%4),0),Random.FRandRange(7500.f,10400.f));
+        }
+        else if (BlockIndex % 4 == 0) AddModel(TEXT("building_crown"), Roof, FRotator::ZeroRotator, 2300);
         else if (BlockIndex % 3 == 0) AddModel(TEXT("water_tower"), Roof, FRotator::ZeroRotator, 900);
         ++BlockIndex;
     }
@@ -148,7 +167,7 @@ void AFilmDistrict::DressLowerStreets()
         Light->RegisterComponent();
     };
     int Line = 0;
-    for (int X : {160,175,190,205,220})
+    for (int X : NeonRide::MarketStallColumns)
     {
         FVector Prev = FVector::ZeroVector;
         for (int J=0; J<=10; ++J)

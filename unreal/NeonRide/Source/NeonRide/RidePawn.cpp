@@ -3,6 +3,9 @@
 #include "TrafficVehicleActor.h"
 #include "FilmArt.h"
 #include "RideWeather.h"
+#include "RideInstruments.h"
+#include "Components/SpotLightComponent.h"
+#include "Components/PointLightComponent.h"
 #include "NeonRideSave.h"
 #include "RideMenu.h"
 #include "Engine/GameViewportClient.h"
@@ -35,6 +38,24 @@ ARidePawn::ARidePawn()
     Camera->bUsePawnControlRotation = false;
     Weather = CreateDefaultSubobject<URideWeather>(TEXT("RideWeather"));
     Weather->SetupAttachment(RootComponent);
+    Instruments = CreateDefaultSubobject<URideInstruments>(TEXT("InstrumentCluster"));
+    Instruments->SetupAttachment(Body);
+    auto* Headlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("DipBeam"));
+    Headlight->SetupAttachment(Body);
+    Headlight->SetRelativeLocationAndRotation(FVector(93,0,85),FRotator(-6.5,0,0));
+    Headlight->SetCastShadows(false);
+    Headlight->SetIntensity(24000.f);
+    Headlight->SetOuterConeAngle(26.f);
+    Headlight->SetInnerConeAngle(14.f);
+    Headlight->SetAttenuationRadius(6800.f);
+    Headlight->SetLightColor(FLinearColor(.74f,.86f,1.f));
+    auto* Cockpit = CreateDefaultSubobject<UPointLightComponent>(TEXT("InstrumentSpill"));
+    Cockpit->SetupAttachment(Body);
+    Cockpit->SetRelativeLocation(FVector(53,0,141));
+    Cockpit->SetCastShadows(false);
+    Cockpit->SetIntensity(36.f);
+    Cockpit->SetAttenuationRadius(130.f);
+    Cockpit->SetLightColor(FLinearColor(.22f,.58f,.84f));
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
     auto Block = [&](const TCHAR* Name, FVector Position, FVector Scale, double Yaw)
@@ -60,7 +81,8 @@ void ARidePawn::BeginPlay()
     {
         TArray<USceneComponent*> Guides;
         Body->GetChildrenComponents(false, Guides);
-        for (auto* Guide : Guides) Guide->SetVisibility(false);
+        for (auto* Guide : Guides)
+            if (Guide->IsA<UStaticMeshComponent>() && Guide!=Instruments) Guide->SetVisibility(false);
         NeonRide::AttachFilmModel(Body, Bike, NeonRide::FilmTransform(Bike, FVector(25.32,0,0), FRotator(0,180,0), 210.7));
         if (auto* Glove = NeonRide::LoadFilmModel(TEXT("glove")))
         {
@@ -87,6 +109,8 @@ void ARidePawn::BeginPlay()
         if (Vehicle) Vehicle->Configure(Spec.Truck);
     }
     RestartRide();
+    Instruments->StartDisplay();
+    Instruments->UpdateDisplay(0.f,Ride,StreetTraffic);
     bSaveEnabled = !FApp::IsUnattended() && GetWorld()->WorldType == EWorldType::Game;
     if (bSaveEnabled && UGameplayStatics::DoesSaveGameExist(SaveSlot,0))
         if (const auto* Save = Cast<UNeonRideSave>(UGameplayStatics::LoadGameFromSlot(SaveSlot,0)))
@@ -332,6 +356,7 @@ void ARidePawn::Tick(float DeltaSeconds)
     UpdatePose();
     UpdateTraffic();
     Weather->UpdateWeather(DeltaSeconds, Ride.Speed, bWalking ? 0.0 : Throttle, bWalking);
+    Instruments->UpdateDisplay(DeltaSeconds,bWalking ? ParkedRide : Ride,StreetTraffic);
 }
 
 void ARidePawn::UpdateTraffic()

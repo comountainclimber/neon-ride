@@ -23,6 +23,11 @@ bool FNeonRideHandling::RunTest(const FString& Parameters)
         TestTrue(TEXT("Ramp can be ridden in reverse"), FMath::IsNearlyZero(At.Z));
     }
     const FPoint Under{395, -214, FDistrict::TerraceZ};
+    for (int X=178; X<=182; ++X)
+        for (int Y=-264; Y>=-292; --Y)
+            if (District.InsideBuilding(X,Y)) { AddError(TEXT("A market stall blocks the ramp entrance")); return false; }
+    for (int X=-65; X<=180; ++X)
+        if (District.InsideBuilding(X,-292)) { AddError(TEXT("The pedestrian aisle is blocked")); return false; }
     TestTrue(TEXT("Buildings block the street-level bike"), District.Resolve({395,-185,-30}, Under).Point.Y != -185
         || District.Resolve({395,-185,-30}, Under).Point.X != 395);
     FRideState Rider;

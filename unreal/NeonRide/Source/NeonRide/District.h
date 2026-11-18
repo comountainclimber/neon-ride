@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 
 namespace NeonRide
 {
@@ -15,6 +16,7 @@ namespace NeonRide
         double Length, ForwardX, ForwardY;
     };
     enum class EBuilding { CityBlock, MarketStall, Station, ParkedCab };
+    inline constexpr std::array<int,5> MarketStallColumns{146,160,170,190,205};
     struct FBuilding { double X, Y, WidthX, WidthY, Height; EBuilding Kind = EBuilding::CityBlock; };
     struct FGround { FPoint Point; EPlace Place; bool bOnSurface = true; };
     struct FStreetPose { FPoint Point; double Yaw, Pitch, Bank; };

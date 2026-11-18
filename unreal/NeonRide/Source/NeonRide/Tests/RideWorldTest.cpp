@@ -95,9 +95,10 @@ bool FNeonRideWorld::RunTest(const FString& Parameters)
     TestTrue(TEXT("Parked motorcycle remains where it was left"),Bike->IsWalking() && Bike->GetParkedPosition().X==0);
     auto* Save = NewObject<UNeonRideSave>();
     Bike->CaptureLocation(*Save);
-    TArray<uint8> Memory;
-    TestTrue(TEXT("Exploration save serializes"),UGameplayStatics::SaveGameToMemory(Save,Memory));
-    auto* RoundTrip = Cast<UNeonRideSave>(UGameplayStatics::LoadGameFromMemory(Memory));
+    const FString TestSlot = TEXT("NeonRide_QA_") + FGuid::NewGuid().ToString();
+    TestTrue(TEXT("Exploration save reaches disk"),UGameplayStatics::SaveGameToSlot(Save,TestSlot,0));
+    auto* RoundTrip = Cast<UNeonRideSave>(UGameplayStatics::LoadGameFromSlot(TestSlot,0));
+    TestTrue(TEXT("Temporary test save is removed"),UGameplayStatics::DeleteGameInSlot(TestSlot,0));
     Action(TEXT("RestartRide"));
     if (!TestNotNull(TEXT("Saved exploration can be reloaded"),RoundTrip)) return false;
     TestTrue(TEXT("Restores the pedestrian and parked bike separately"),Bike->RestoreLocation(*RoundTrip)

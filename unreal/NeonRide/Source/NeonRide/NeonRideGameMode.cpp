@@ -55,7 +55,7 @@ void ANeonRideHUD::DrawHUD()
     Super::DrawHUD();
     const auto* PC = GetOwningPlayerController();
     const auto* Rider = PC ? Cast<ARidePawn>(PC->GetPawn()) : nullptr;
-    if (!Canvas || !Rider) return;
+    if (!Canvas || !Rider || PC->GetViewTarget()!=Rider) return;
 
     const auto& Ride = Rider->GetRide();
     const float Scale = FMath::Clamp(Canvas->ClipX / 1440.f, 0.65f, 1.5f);

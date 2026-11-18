@@ -10,6 +10,7 @@ class ASkyway;
 class UCameraComponent;
 class ATrafficVehicleActor;
 class URideWeather;
+class URideInstruments;
 class SRideMenu;
 class UNeonRideSave;
 
@@ -41,6 +42,7 @@ private:
     UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Body;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
     UPROPERTY(VisibleAnywhere) TObjectPtr<URideWeather> Weather;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<URideInstruments> Instruments;
     UPROPERTY() TArray<TObjectPtr<ATrafficVehicleActor>> Vehicles;
     UPROPERTY() TArray<TObjectPtr<USceneComponent>> Gloves;
     NeonRide::FRideState Ride;
