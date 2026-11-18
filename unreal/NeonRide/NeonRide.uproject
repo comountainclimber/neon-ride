@@ -3,5 +3,6 @@
   "EngineAssociation": "5.8",
   "Category": "Games",
   "Description": "First-person skyway handling prototype",
-  "Modules": [{ "Name": "NeonRide", "Type": "Runtime", "LoadingPhase": "Default" }]
+  "Modules": [{ "Name": "NeonRide", "Type": "Runtime", "LoadingPhase": "Default" }],
+  "Plugins": [{ "Name": "PythonScriptPlugin", "Enabled": true, "TargetAllowList": ["Editor"] }]
 }

@@ -1,4 +1,5 @@
 #include "TrafficVehicleActor.h"
+#include "FilmArt.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -25,6 +26,14 @@ ATrafficVehicleActor::ATrafficVehicleActor()
 
 void ATrafficVehicleActor::Configure(bool bTruck)
 {
+    if (auto* Mesh = NeonRide::LoadFilmModel(bTruck ? TEXT("truck") : TEXT("cab")))
+    {
+        for (UStaticMeshComponent* Guide : {Chassis.Get(), Cabin.Get(), RearWindow.Get(), LeftLamp.Get(), RightLamp.Get()})
+            Guide->SetVisibility(false);
+        NeonRide::AttachFilmModel(RootComponent, Mesh,
+            NeonRide::FilmTransform(Mesh, FVector::ZeroVector, FRotator::ZeroRotator, bTruck ? 1300.0 : 480.0));
+        return;
+    }
     auto SetPart = [](UStaticMeshComponent* Mesh, FVector Location, FVector Dimensions, const FLinearColor& Colour)
     {
         Mesh->SetRelativeLocation(Location);

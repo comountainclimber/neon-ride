@@ -16,6 +16,7 @@ class ASkyway : public AActor
 
 public:
     ASkyway();
+    virtual void BeginPlay() override;
     virtual void OnConstruction(const FTransform& Transform) override;
     FTransform FrameAt(double DistanceMetres) const;
     const NeonRide::FDistrict& GetDistrict() const { return District; }
@@ -31,4 +32,7 @@ private:
     UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> Buildings;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> MarketColour;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> TransitColour;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> OpenLights;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> GlassLights;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> GlassWalls;
 };

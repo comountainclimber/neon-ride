@@ -9,6 +9,7 @@
 class ASkyway;
 class UCameraComponent;
 class ATrafficVehicleActor;
+class URideWeather;
 
 UCLASS()
 class ARidePawn : public APawn
@@ -29,6 +30,7 @@ private:
     UPROPERTY() TObjectPtr<ASkyway> Skyway;
     UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Body;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UCameraComponent> Camera;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<URideWeather> Weather;
     UPROPERTY() TArray<TObjectPtr<ATrafficVehicleActor>> Vehicles;
     NeonRide::FRideState Ride;
     NeonRide::FStreetTraffic StreetTraffic;

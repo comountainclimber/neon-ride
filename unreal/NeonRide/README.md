@@ -20,7 +20,14 @@ Release the throttle to coast. Brake to park and use steering to turn around, ev
 - `District.*` defines driveable surfaces, block footprints, landmarks' locations and the traffic loop in metres. Surface selection respects elevation where streets cross beneath the skyway.
 - `RideHandling.*` implements throttle, braking and free heading at 120 Hz. Turn rate and speed determine bike lean.
 - `RidePawn.*` places the bike and independent first-person camera. The helmet rolls 42% with the bike and the lens widens with speed.
-- `Skyway.*` builds the film's 300 m straight, 90 m curvature transition and 340 m-radius left curve, plus a connected lower district. The greybox uses the engine's built-in cube and material.
+- `Skyway.*` builds the film's 300 m straight, 90 m curvature transition and 340 m-radius left curve, plus a connected lower district.
+- `FilmArt.*` and `FilmDistrict.*` place the film bike, mirrored gloves, street vehicles, eight flying cars, skyline towers and roadside props. Simple geometry defines the drivable surfaces and street-block collisions.
 - `TrafficRun.*` handles street traffic. `NeonRideGameMode.*` supplies spawn, light, location display and map.
 
 Run the `NeonRide.Exploration` automation group in a standalone game session to check controls, ramp traversal, vehicle occupancy, map toggle and camera behavior. The Blender film and `UNREAL_HANDOFF.md` on the repository's main branch are the visual references for the art pass.
+
+## Original film models
+
+In a full repository checkout, the first editor launch imports the 18 GLBs from `models/` into `/Game/Film`. A standalone project can carry prepared GLBs in `SourceArt/Models`. Allow the first import to finish before playing or packaging. The importer also builds the wet deck, illuminated facades, painted skyline panels and glyph signs using the film's `textures/` and `signs/` folders. Its rain, wind and engine loops come from the original `audio/wav/` recordings.
+
+For smaller game assets, run `Tools/prepare_models.py <originals> <prepared> --gltfpack <executable>` using Python with numpy and Pillow and gltfpack 1.3. Set `NEON_RIDE_MODELS` to the prepared folder before the first import. This reduces geometry, resizes textures by model type and derives an emissive mask from the painted base colour. The source GLBs remain available for future art revisions.

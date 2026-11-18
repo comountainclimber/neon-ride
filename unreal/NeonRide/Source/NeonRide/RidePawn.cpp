@@ -1,6 +1,8 @@
 #include "RidePawn.h"
 #include "Skyway.h"
 #include "TrafficVehicleActor.h"
+#include "FilmArt.h"
+#include "RideWeather.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -17,6 +19,8 @@ ARidePawn::ARidePawn()
     Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("HelmetCamera"));
     Camera->SetupAttachment(RootComponent);
     Camera->bUsePawnControlRotation = false;
+    Weather = CreateDefaultSubobject<URideWeather>(TEXT("RideWeather"));
+    Weather->SetupAttachment(RootComponent);
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
     auto Block = [&](const TCHAR* Name, FVector Position, FVector Scale, double Yaw)
@@ -38,6 +42,21 @@ ARidePawn::ARidePawn()
 void ARidePawn::BeginPlay()
 {
     Super::BeginPlay();
+    if (auto* Bike = NeonRide::LoadFilmModel(TEXT("bike")))
+    {
+        TArray<USceneComponent*> Guides;
+        Body->GetChildrenComponents(false, Guides);
+        for (auto* Guide : Guides) Guide->SetVisibility(false);
+        NeonRide::AttachFilmModel(Body, Bike, NeonRide::FilmTransform(Bike, FVector(25.32,0,0), FRotator(0,180,0), 210.7));
+        if (auto* Glove = NeonRide::LoadFilmModel(TEXT("glove")))
+        {
+            for (int Side : {-1,1})
+            {
+                const FVector Grip(22.74, Side * 33.0, 97.55);
+                NeonRide::AttachFilmModel(Body, Glove, NeonRide::FilmTransform(Glove, Grip, FRotator(-84, Side * 9, 0), 42.14, Side < 0));
+            }
+        }
+    }
     for (TActorIterator<ASkyway> It(GetWorld()); It; ++It)
     {
         Skyway = *It;
@@ -54,6 +73,7 @@ void ARidePawn::BeginPlay()
         if (Vehicle) Vehicle->Configure(Spec.Truck);
     }
     RestartRide();
+    Weather->StartWeather();
 }
 
 void ARidePawn::EndPlay(const EEndPlayReason::Type Reason)
@@ -125,6 +145,7 @@ void ARidePawn::Tick(float DeltaSeconds)
     }
     UpdatePose();
     UpdateTraffic();
+    Weather->UpdateWeather(DeltaSeconds, Ride.Speed, Throttle);
 }
 
 void ARidePawn::UpdateTraffic()

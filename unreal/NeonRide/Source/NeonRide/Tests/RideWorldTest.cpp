@@ -4,6 +4,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
@@ -29,6 +31,19 @@ bool FNeonRideWorld::RunTest(const FString& Parameters)
     TestTrue(TEXT("Film spline bends left"), Route->FrameAt(600.0).GetLocation().Y < -1000.0);
     ++Route;
     TestFalse(TEXT("Only one district exists"), bool(Route));
+    TSet<FString> FilmModels;
+    for (TActorIterator<AActor> It(World); It; ++It)
+    {
+        TInlineComponentArray<UStaticMeshComponent*> Components(*It);
+        for (const auto* Part : Components)
+        {
+            const auto* Instances = Cast<UInstancedStaticMeshComponent>(Part);
+            if (!Part->IsVisible() || !Part->GetStaticMesh() || (Instances && Instances->GetInstanceCount() == 0)) continue;
+            const FString Asset = Part->GetStaticMesh()->GetPathName();
+            if (Asset.StartsWith(TEXT("/Game/Film/"))) FilmModels.Add(Asset);
+        }
+    }
+    TestEqual(TEXT("All original film models are used by visible game components"), FilmModels.Num(), 18);
 
     auto Axis = [&](FName Name, float Value)
     {

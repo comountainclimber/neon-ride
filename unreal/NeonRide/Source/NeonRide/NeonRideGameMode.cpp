@@ -4,9 +4,11 @@
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Engine/DirectionalLight.h"
+#include "Engine/ExponentialHeightFog.h"
 #include "Engine/SkyLight.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -17,13 +19,21 @@ void ANeonRideGameMode::InitGame(const FString& MapName, const FString& Options,
     Super::InitGame(MapName, Options, ErrorMessage);
     UWorld* World = GetWorld();
     World->SpawnActor<APlayerStart>(FVector(0, 180, 115), FRotator::ZeroRotator);
-    World->SpawnActor<ASkyAtmosphere>();
-    auto* Sun = World->SpawnActor<ADirectionalLight>(FVector(0, 0, 1200), FRotator(-38, -30, 0));
+    if (auto* Atmosphere = World->SpawnActor<ASkyAtmosphere>())
+        Atmosphere->GetComponent()->SetSkyLuminanceFactor(FLinearColor(0.028f,0.043f,0.085f));
+    if (auto* Fog = World->SpawnActor<AExponentialHeightFog>(FVector(0,0,-5000),FRotator::ZeroRotator))
+    {
+        Fog->GetComponent()->SetFogDensity(0.015f);
+        Fog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.018f,0.031f,0.065f));
+        Fog->GetComponent()->SetStartDistance(2800.f);
+    }
+    auto* Sun = World->SpawnActor<ADirectionalLight>(FVector(0, 0, 1200), FRotator(-22, -45, 0));
     if (Sun)
     {
         auto* Key = Sun->FindComponentByClass<UDirectionalLightComponent>();
         Key->SetMobility(EComponentMobility::Movable);
-        Key->SetIntensity(3.4f);
+        Key->SetLightColor(FLinearColor(0.56f,0.69f,1.f));
+        Key->SetIntensity(1.8f);
         Key->SetAtmosphereSunLight(true);
     }
     if (auto* Sky = World->SpawnActor<ASkyLight>())

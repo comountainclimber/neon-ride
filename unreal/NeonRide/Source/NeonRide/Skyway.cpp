@@ -1,4 +1,6 @@
 #include "Skyway.h"
+#include "FilmDistrict.h"
+#include "Engine/World.h"
 #include "RideHandling.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SplineComponent.h"
@@ -27,6 +29,10 @@ ASkyway::ASkyway()
     Buildings = Layer(TEXT("TerraceBlocks"));
     MarketColour = Layer(TEXT("MarketCanopies"));
     TransitColour = Layer(TEXT("TransitAndOverlook"));
+    OpenLights = Layer(TEXT("BlueLaneLights"));
+    GlassLights = Layer(TEXT("TealLaneLights"));
+    GlassWalls = Layer(TEXT("GlassWalls"));
+    GlassWalls->SetCastShadow(false);
     Deck->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
@@ -37,6 +43,13 @@ FTransform ASkyway::FrameAt(double DistanceMetres) const
     const double Bank = -5.0 * NeonRide::Curvature(DistanceMetres) * 340.0;
     Frame.SetRotation(Frame.GetRotation() * FRotator(0.0, 0.0, Bank).Quaternion());
     return Frame;
+}
+
+void ASkyway::BeginPlay()
+{
+    Super::BeginPlay();
+    auto* Art = GetWorld()->SpawnActor<AFilmDistrict>(GetActorLocation(), GetActorRotation());
+    if (Art) Art->Populate(this);
 }
 
 void ASkyway::OnConstruction(const FTransform& Transform)
@@ -73,6 +86,30 @@ void ASkyway::OnConstruction(const FTransform& Transform)
     Prepare(Buildings, FLinearColor(0.24f, 0.31f, 0.40f));
     Prepare(MarketColour, FLinearColor(0.94f, 0.38f, 0.10f));
     Prepare(TransitColour, FLinearColor(0.08f, 0.61f, 0.65f));
+    Prepare(OpenLights, FLinearColor(0.2f,0.47f,1.f));
+    Prepare(GlassLights, FLinearColor(0.06f,0.85f,0.69f));
+    GlassWalls->ClearInstances();
+    auto EnvironmentMaterial = [](const TCHAR* Key)
+    {
+        const FString Path = FString::Printf(TEXT("/Game/Environment/%s.%s"),Key,Key);
+        return LoadObject<UMaterialInterface>(nullptr,*Path,nullptr,LOAD_NoWarn);
+    };
+    if (auto* Wet = EnvironmentMaterial(TEXT("M_WetDeck"))) Deck->SetMaterial(0,Wet);
+    if (auto* Facade = EnvironmentMaterial(TEXT("M_Facade"))) Buildings->SetMaterial(0,Facade);
+    auto* Glass = EnvironmentMaterial(TEXT("M_Glass"));
+    if (Glass) GlassWalls->SetMaterial(0,Glass);
+    if (auto* Neon = EnvironmentMaterial(TEXT("M_Neon")))
+    {
+        auto Tint = [&](UInstancedStaticMeshComponent* Layer,FLinearColor C)
+        {
+            if (auto* Mat=Layer->CreateDynamicMaterialInstance(0,Neon))
+                Mat->SetVectorParameterValue(TEXT("Color"),C);
+        };
+        Tint(OpenLights,FLinearColor(0.19f,0.43f,1.f));
+        Tint(GlassLights,FLinearColor(0.035f,0.88f,0.64f));
+        Tint(MarketColour,FLinearColor(1.f,0.32f,0.065f));
+        Tint(TransitColour,FLinearColor(0.045f,0.50f,0.62f));
+    }
 
     // Cube mesh is one metre across. Transforms below use metre dimensions and cm positions.
     auto Box = [](UInstancedStaticMeshComponent* Layer, const FTransform& Frame, FVector OffsetCm, FVector SizeM)
@@ -91,7 +128,12 @@ void ASkyway::OnConstruction(const FTransform& Transform)
         {
             Box(Markings, Frame, FVector(0, Side * 462, 1), FVector(5.03, 0.09, 0.02));
             if (!(Side == -1 && S >= 165 && S < 195) && S < 1070)
+            {
                 Box(Rails, Frame, FVector(0, Side * 495, 85), FVector(5.10, 0.10, 0.10));
+                Box(S < 372 ? OpenLights.Get() : GlassLights.Get(), Frame, FVector(0,Side*488,89),FVector(5.08,0.065,0.055));
+                if (Glass && S >= 372)
+                    Box(GlassWalls,Frame,FVector(0,Side*502,230),FVector(5.03,0.04,4.6));
+            }
         }
     }
     for (int S = 0; S < int(NeonRide::TrackLength); S += S < 372 ? 26 : 16)
