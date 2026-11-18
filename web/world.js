@@ -111,9 +111,15 @@ export async function makeWorld(canvas,circuit,onLoad){
   const renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
   // Resolve fine rails and emissive windows above pixel resolution on standard-DPI desktops.
   // Limit total target area on large or high-density screens.
-  const nativeRatio=devicePixelRatio||1;
-  const targetRatio=matchMedia('(pointer: fine)').matches?Math.max(1.35,nativeRatio):nativeRatio;
-  const dpr=Math.min(targetRatio,2,Math.max(1,Math.sqrt(10500000/(innerWidth*innerHeight))));
+  const touchDisplay=matchMedia('(pointer: coarse)');
+  function renderRatio(width,height){
+    const nativeRatio=devicePixelRatio||1;
+    const balanced=touchDisplay.matches && document.body.dataset.renderQuality!=='high';
+    const target=touchDisplay.matches?nativeRatio:Math.max(1.35,nativeRatio);
+    const maxPixels=balanced?1600000:10500000;
+    return Math.min(target,balanced?1.5:2,Math.max(balanced?.85:1,Math.sqrt(maxPixels/(width*height))));
+  }
+  let dpr=renderRatio(innerWidth,innerHeight);
   renderer.setPixelRatio(dpr);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.14;
   const scene=new T.Scene(),camera=new T.PerspectiveCamera(67,1,.045,2900);
   scene.fog=new T.FogExp2(0x273746,.00150);
@@ -200,8 +206,11 @@ export async function makeWorld(canvas,circuit,onLoad){
   const rainfall=rain(scene),aim=V(),normal=V(),target=V();
   const resize=()=>{
     const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);
+    const next=renderRatio(w,h);
+    if(next!==dpr){dpr=next;renderer.setPixelRatio(dpr);composer.setPixelRatio(dpr);}
     renderer.setSize(w,h,false);composer.setSize(w,h);track.resize(w*dpr,h*dpr);camera.aspect=w/h;camera.updateProjectionMatrix();
-  };new ResizeObserver(resize).observe(canvas);resize();
+  };new ResizeObserver(resize).observe(canvas);
+  window.addEventListener('circuit-resolution-change',resize);resize();
   const trafficLights=carList.map(c=>c.light);
   let previousTime=null;
   function draw(p,look,braking=0){
@@ -221,7 +230,9 @@ export async function makeWorld(canvas,circuit,onLoad){
       aim.set(Math.cos(viewYaw)*Math.cos(pitch),Math.sin(pitch),Math.sin(viewYaw)*Math.cos(pitch));
       camera.up.set(0,1,0);camera.lookAt(target.copy(camera.position).add(aim));camera.rotateZ(-lean*.57);
     }
-    const fov=crash?43:65+9*p.v/82+3*p.boost;
+    // A narrow phone still needs a view of the lane edges while cornering.
+    const portraitWiden=touchDisplay.matches?22*Math.max(0,Math.min(1,(.95-camera.aspect)/.5)):0;
+    const fov=crash?43:65+portraitWiden+9*p.v/82+3*p.boost;
     if(Math.abs(fov-camera.fov)>.015){camera.fov=fov;camera.updateProjectionMatrix();}
     refresh({position:camera.position,yaw:viewYaw});
     localLights(camera.position);

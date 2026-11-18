@@ -1,0 +1,145 @@
+#touch {
+  --thumb-offset: 0px;
+  --steer-width: clamp(135px,36vw,186px);
+  --steer-height: clamp(67px,17dvh,80px);
+  --pedal-size: clamp(57px,14dvh,72px);
+  --touch-gap: 7px;
+}
+
+@media (any-pointer: coarse), (pointer: coarse) {
+  body[data-screen=game] #touch {
+    display: flex !important;
+    position: fixed;
+    inset: auto max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    z-index: 3;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  body[data-steer-side=right] #touch { flex-direction: row-reverse; }
+  #touch [data-steering], #touch [data-pedal] {
+    pointer-events: auto;
+    position: relative;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    outline-offset: 2px;
+    box-sizing: border-box;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 #c2ffed22, 0 3px 12px #0005;
+  }
+  #touch [data-steering] {
+    display: grid;
+    place-items: center;
+    width: var(--steer-width);
+    height: var(--steer-height);
+    color: #d4ede4;
+    border: 1px solid #cee6e48c;
+    border-radius: 15px;
+    background: linear-gradient(150deg,#162830de,#081721d4);
+  }
+  .steer-label, #touch .pedal-label {
+    font: 700 10px/1 Arial,sans-serif;
+    letter-spacing: .095em;
+    text-transform: uppercase;
+  }
+  .steer-label { position: absolute; top: 7px; }
+  #touch .steer-track {
+    display: block;
+    position: absolute;
+    top: 58%;
+    left: 13px;
+    right: 13px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg,#90aba980 0 2px,transparent 2px 7px);
+  }
+  .steer-track::before,.steer-track::after {
+    position: absolute;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    content: '';
+    border: solid #adcfcb;
+    border-width: 0 0 1.5px 1.5px;
+  }
+  .steer-track::before { left: 1px; transform: translateY(-50%) rotate(45deg); }
+  .steer-track::after { right: 1px; transform: translateY(-50%) rotate(225deg); }
+  .steer-center {
+    position: absolute;
+    left: calc(50% - 1px);
+    top: 27px;
+    bottom: 8px;
+    width: 2px;
+    background: #a9d6ce80;
+  }
+  #touch .steer-grip {
+    position: absolute;
+    left: 50%;
+    top: 58%;
+    width: 38px;
+    height: 31px;
+    border: 1px solid #d0eee1;
+    border-radius: 9px;
+    background: linear-gradient(175deg,#46676b,#233b43);
+    transform: translate(calc(-50% + var(--thumb-offset)), -50%);
+    transition: transform 110ms ease-out;
+    box-shadow: 0 2px 5px #0009;
+  }
+  .steer-grip::after {
+    content: '';
+    position: absolute;
+    inset: 8px 11px;
+    background: repeating-linear-gradient(90deg,#cef2e3 0 2px,transparent 2px 5px);
+    opacity: .86;
+  }
+  #touch [data-steering][data-held] { border-color: #b1ffe2; }
+  #touch [data-held] .steer-grip { transition: none; background: linear-gradient(160deg,#588f87,#244a4c); }
+  #touch .pedal-bank {
+    display: grid;
+    grid-template-columns: var(--pedal-size) calc(var(--pedal-size) * 1.13);
+    grid-template-rows: 44px var(--pedal-size);
+    grid-template-areas: ". nitro" "brake gas";
+    gap: var(--touch-gap);
+    align-items: stretch;
+    pointer-events: none;
+  }
+  body[data-steer-side=right] #touch .pedal-bank {
+    grid-template-columns: calc(var(--pedal-size) * 1.13) var(--pedal-size);
+    grid-template-areas: "nitro ." "gas brake";
+  }
+  #touch button[data-pedal] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 4px;
+    color: #ddf4e9;
+    border: 1px solid #99d9c090;
+    border-radius: 14px;
+    background: linear-gradient(145deg,#1c3838e8,#101c25e0);
+  }
+  #touch [data-pedal=gas] { grid-area: gas; }
+  #touch [data-pedal=brake] { grid-area: brake; color: #f5d9cb; border-color: #febba094; background: linear-gradient(145deg,#43312ee3,#1a1c23e0); }
+  #touch [data-pedal=boost] { grid-area: nitro; flex-direction: row; gap: 3px; color: #ffdfa2; border-color: #e3b775a8; border-radius: 23px; background: linear-gradient(145deg,#413821e6,#28241ce0); }
+  #touch .pedal-symbol { font: 700 21px/.85 Arial,sans-serif; }
+  #touch [data-pedal=boost] .pedal-symbol { font-size: 15px; }
+  #touch button[data-pedal=gas][aria-pressed=true] { background: #a1ebca; color: #102726; }
+  #touch button[data-pedal=brake][aria-pressed=true] { background: #ffbb9f; color: #3d211a; }
+  #touch button[data-pedal=boost][aria-pressed=true] { background: #f9d79a; color: #302619; }
+}
+@media (max-width: 360px) and (orientation: portrait) {
+  #touch { --steer-width: 126px; --pedal-size: 54px; --touch-gap: 5px; }
+}
+@media (orientation: landscape) and (max-height: 430px) {
+  #touch { --steer-width: clamp(144px,23vw,180px); --steer-height: 65px; --pedal-size: 55px; --touch-gap: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #touch .steer-grip { transition: none; }
+}

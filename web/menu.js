@@ -21,3 +21,25 @@ picker.addEventListener('keydown',event=>{
 });
 selectScheme(matchMedia('(pointer: coarse)').matches?'touch':'keys');
 window.addEventListener('gamepadconnected',()=>selectScheme('pad'));
+
+// Remember cockpit preferences independently of the player's saved ride.
+for (const [name, fallback, apply] of [
+  ['steer-side','left',value=>document.body.dataset.steerSide=value],
+  ['render-quality','balanced',value=>{
+    document.body.dataset.renderQuality=value;
+    window.dispatchEvent(new Event('circuit-resolution-change'));
+  }]
+]) {
+  const options=[...document.querySelectorAll('input[name="'+name+'"]')];
+  const key='neon-ride.touch.'+name;
+  let selected=fallback;
+  try { selected=localStorage.getItem(key)||fallback; } catch {}
+  const current=options.find(option=>option.value===selected)||options[0];
+  current.checked=true;
+  apply(current.value);
+  for (const option of options) option.addEventListener('change',()=>{
+    if(!option.checked)return;
+    apply(option.value);
+    try {localStorage.setItem(key,option.value);} catch {}
+  });
+}
