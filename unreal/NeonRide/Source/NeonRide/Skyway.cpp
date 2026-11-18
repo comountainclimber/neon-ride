@@ -22,7 +22,6 @@ ASkyway::ASkyway()
         Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         return Mesh;
     };
-    Paint = Layer(TEXT("Thermoplastic"));
     Steel = Layer(TEXT("BridgeSteel"));
     Edge = Layer(TEXT("EdgeLighting"));
     Reflector = Layer(TEXT("AmberMarkers"));
@@ -40,14 +39,13 @@ FTransform ASkyway::FrameAt(double S, double Lane) const
 void ASkyway::BeginPlay()
 {
     Super::BeginPlay();
-    auto *Wet = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_RainAsphalt.M_RainAsphalt"));
+    auto *Wet = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_CircuitAsphalt.M_CircuitAsphalt"));
     auto *Neon = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_Neon.M_Neon"));
     Asphalt->SetMaterial(0, Wet);
     auto Tint = [](UInstancedStaticMeshComponent *Layer, UMaterialInterface *Base, FLinearColor Color) {
         if (auto *Material = Layer->CreateDynamicMaterialInstance(0, Base))
             Material->SetVectorParameterValue(TEXT("Color"), Color);
     };
-    Tint(Paint, Paint->GetMaterial(0), FLinearColor(.68f, .72f, .69f));
     Tint(Steel, Steel->GetMaterial(0), FLinearColor(.086f, .11f, .145f));
     Tint(Edge, Neon, FLinearColor(.04f, .65f, .87f));
     Tint(Reflector, Neon, FLinearColor(.99f, .23f, .04f));
@@ -65,8 +63,8 @@ void ASkyway::BeginPlay()
             const auto Frame = FrameAt(S, Circuit::HalfWidth * Side).GetRelativeTransform(GetActorTransform());
             Vertices.Add(Frame.GetLocation());
             Normals.Add(Frame.GetUnitAxis(EAxis::Z));
-            Tangents.Emplace(Frame.GetUnitAxis(EAxis::X), false);
-            UV.Emplace((Side + 1) * .5, S / 10.);
+            Tangents.Emplace(Frame.GetUnitAxis(EAxis::Y), true);
+            UV.Emplace(Side * Circuit::HalfWidth, S);
         }
         if (I < Sections)
         {
@@ -85,12 +83,9 @@ void ASkyway::BeginPlay()
     for (int I = 0; I < Sections; ++I)
     {
         const double S = (I + .5) * Step;
-        Block(Steel, S, 0, -.57, FVector(Step + .08, 13.42, 1.10));
-        if (I % 3 == 0)
-            Block(Paint, S, 0, .014, FVector(3.7, .13, .018));
+        Block(Steel, S, 0, -.86, FVector(Step + .08, 13.42, 1.10));
         for (int Side : {-1, 1})
         {
-            Block(Paint, S, Side * 5.98, .018, FVector(Step + .015, .12, .016));
             Block(Steel, S, Side * 6.69, .32, FVector(Step + .08, .28, .70));
             Block(Edge, S, Side * 6.67, .69, FVector(Step + .045, .19, .045));
             if (I % 6 == 0)

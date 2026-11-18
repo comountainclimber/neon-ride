@@ -15,7 +15,6 @@ class ASkyway : public AActor
 
   private:
     UPROPERTY() TObjectPtr<UProceduralMeshComponent> Asphalt;
-    UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> Paint;
     UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> Steel;
     UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> Edge;
     UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> Reflector;

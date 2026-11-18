@@ -32,7 +32,7 @@ $p = (Resolve-Path NeonRide.uproject).Path
 
 ## Shared simulation and art
 
-`Source/NeonRide/CircuitCore.*` runs the same 120 Hz simulation natively and as WebAssembly in the browser. Both builds use the same baked `scenery.json` placements. The Unreal copy is staged from `Content/Circuit/`. Positions and dimensions in the manifest are in metres, with Unreal X/Y horizontal, Z up and yaw in radians. Film geometry, material textures, mesh axes and the helmed rider are imported into Unreal units at build time.
+`Source/NeonRide/CircuitCore.*` runs the same 120 Hz simulation natively and as WebAssembly in the browser. The three road PBR maps in SourceArt/Circuit/ decode the browser albedo, normal and roughness images without changing their pixels. Both builds use the same baked `scenery.json` placements. The Unreal copy is staged from `Content/Circuit/`. Positions and dimensions in the manifest are in metres, with Unreal X/Y horizontal, Z up and yaw in radians. Film geometry, material textures, mesh axes and the helmed rider are imported into Unreal units at build time.
 
 The Unreal road uses a continuous banked mesh, wet asphalt, lane paint, parapets and edge lighting. The rider camera rolls with the bike and the lens widens with speed. Vesper's crash camera tracks her pelvis as the animated character separates from the bike. The production rig is 1.75 m tall with 53 weighted Mixamo joints. The exterior animation samples the shared crash clock.
 

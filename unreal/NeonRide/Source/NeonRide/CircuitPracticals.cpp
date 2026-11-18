@@ -1,4 +1,5 @@
 #include "CircuitPracticals.h"
+#include "CircuitCore.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -100,16 +101,49 @@ void UCircuitPracticals::Populate(AActor& District, const TArray<TSharedPtr<FJso
             LoadObject<UMaterialInterface>(nullptr,*Path));
     }
 
+    auto* Brackets = Batch(District,TEXT("OuterVergeBrackets"),Cube,
+        Tint(District,Cube->GetMaterial(0),FLinearColor(.12f,.16f,.21f)));
+    TArray<Circuit::Frame> RoadSamples;
+    for (double Distance=0.;Distance<Circuit::Length();Distance+=4.)
+        RoadSamples.Add(Circuit::At(Distance));
+    auto Beam=[&](FVector From,FVector To,double WidthCm,double DepthCm)
+    {
+        const FVector Delta=To-From;
+        Brackets->AddInstance(FTransform(Delta.Rotation(),(From+To)*.5,
+            FVector(Delta.Size()/100.,WidthCm/100.,DepthCm/100.)));
+    };
+    auto InstallBracket=[&](const FString& Key,const FVector& Base,double Size,const FRotator& Yaw)
+    {
+        const Circuit::Frame* Near=&RoadSamples[0];
+        double Closest=TNumericLimits<double>::Max();
+        for(const auto& Sample:RoadSamples)
+        {
+            const double Dx=Base.X*.01-Sample.x, Dy=Base.Y*.01-Sample.y;
+            const double D2=Dx*Dx+Dy*Dy;
+            if(D2<Closest){Near=&Sample;Closest=D2;}
+        }
+        const double Signed=(Base.X*.01-Near->x)*Near->rx+(Base.Y*.01-Near->y)*Near->ry;
+        const double Offset=Signed<0.?-6.72:6.72;
+        const FVector Lip=FVector(Near->x+Near->rx*Offset,Near->y+Near->ry*Offset,
+            Near->z-Offset*FMath::Sin(Near->bank)-.56)*100.;
+        const double Width=Key.StartsWith(TEXT("lamp"))?130.:FMath::Min(1000.,Size*.65);
+        Brackets->AddInstance(FTransform(Yaw,Base-FVector(0,0,16),FVector(Width/100.,Width/100.,.32)));
+        const FVector Tip=Base-FVector(0,0,34);
+        Beam(Lip,Tip,FMath::Max(65.,Width*.36),34.);
+        Beam(Lip-FVector(0,0,130),FMath::Lerp(Lip,Tip,.83),26.,25.);
+    };
     int32 SignIndex = 0;
     for (const auto& Value : Placements)
     {
         const auto& P = Value->AsArray();
         if (P.Num()!=6) continue;
         const FString Key=P[0]->AsString();
-        if (!Key.StartsWith(TEXT("lamp")) && !Key.StartsWith(TEXT("sign"))) continue;
+        if (Key.StartsWith(TEXT("tower"))) continue;
         const FVector Base=FVector(P[1]->AsNumber(),P[2]->AsNumber(),P[3]->AsNumber())*100.;
         const double Size=P[4]->AsNumber()*100.;
         const FRotator Yaw(0,FMath::RadiansToDegrees(P[5]->AsNumber()),0);
+        InstallBracket(Key,Base,Size,Yaw);
+        if (!Key.StartsWith(TEXT("lamp")) && !Key.StartsWith(TEXT("sign"))) continue;
         const FVector Along=Yaw.Vector();
         const FVector Inward(-Along.Y,Along.X,0.);
 

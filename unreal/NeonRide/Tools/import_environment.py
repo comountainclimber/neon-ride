@@ -4,6 +4,7 @@ import os
 import unreal as ue
 from hologram_mesh import build_jellyfish
 from instrument_material import build_instruments
+from circuit_material import build_road
 
 
 def build_environment(source):
@@ -57,7 +58,8 @@ def build_environment(source):
         pin.set_editor_property("input_name",name)
         return pin
     sheet = import_file("signs/glyph-sheet.png","T_DashGlyphs")
-    make("M_CircuitCluster",lambda mat,node: build_instruments(node,wire,output,named_input,mat,sheet))
+    build_road(import_file,make,wire,named_input,output)
+    make("M_CircuitDisplay",lambda mat,node: build_instruments(node,wire,output,named_input,mat,sheet))
 
     def surface(texture, walls):
         def build(mat, node):

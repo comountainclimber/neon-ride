@@ -41,6 +41,16 @@ ARidePawn::ARidePawn()
     Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("HelmetCamera"));
     Camera->SetupAttachment(RootComponent);
     Camera->bUsePawnControlRotation = false;
+    CrashFill = CreateDefaultSubobject<UPointLightComponent>(TEXT("CrashBounce"));
+    CrashFill->SetupAttachment(Camera);
+    CrashFill->SetRelativeLocation(FVector(110, 85, 60));
+    CrashFill->SetIntensityUnits(ELightUnits::Lumens);
+    CrashFill->SetIntensity(1000.f);
+    CrashFill->SetLightColor(FLinearColor(.69f,.83f,1.f));
+    CrashFill->SetAttenuationRadius(1150);
+    CrashFill->SetSourceRadius(80);
+    CrashFill->SetCastShadows(false);
+    CrashFill->SetVisibility(false);
     Weather = CreateDefaultSubobject<URideWeather>(TEXT("RideWeather"));
     Weather->SetupAttachment(RootComponent);
     Instruments = CreateDefaultSubobject<URideInstruments>(TEXT("InstrumentCluster"));
@@ -315,6 +325,7 @@ void ARidePawn::UpdatePose()
     const auto Frame = Skyway->FrameAt(Ride.s, Ride.lateral);
     SetActorTransform(Frame);
     const bool Crashed = Ride.crashAge >= 0.;
+    CrashFill->SetVisibility(Crashed);
     if (Ejected->IsVisible() != Crashed)
         Ejected->SetVisibility(Crashed, true);
     for (USceneComponent *Glove : Gloves)
@@ -332,7 +343,7 @@ void ARidePawn::UpdatePose()
         Ejected->SetWorldLocationAndRotation(RiderPos, RiderFrame.GetRotation() * Tumble.Quaternion());
         Body->SetRelativeRotation(FRotator(0, 0, FMath::RadiansToDegrees(Shot.bikeRoll)));
         const FVector Eye = RiderFrame.TransformPosition(
-            FVector(-Shot.cameraDistance * 55., -Ride.crashSide * 300., Shot.cameraHeight * 85.));
+            FVector(Shot.cameraDistance * 42., Ride.crashSide * 310., Shot.cameraHeight * 79.));
         const FVector Aim = RiderPos;
         Camera->SetWorldLocationAndRotation(Eye, (Aim - Eye).Rotation());
         Camera->SetFieldOfView(78);

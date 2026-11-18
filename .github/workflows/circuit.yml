@@ -20,6 +20,7 @@ jobs:
       - name: Check simulation and scenery artifacts
         run: |
           python3 unreal/NeonRide/Tools/build_circuit_wasm.py --check
+          python3 unreal/NeonRide/Tools/check_rider.py
           cmp web/scenery.json unreal/NeonRide/Content/Circuit/scenery.json
       - name: Compare native and browser driving
         run: |

@@ -18,7 +18,7 @@ URideInstruments::URideInstruments()
 void URideInstruments::StartDisplay()
 {
     if (auto *Material =
-            LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_CircuitCluster.M_CircuitCluster")))
+            LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_CircuitDisplay.M_CircuitDisplay")))
         Display = CreateDynamicMaterialInstance(0, Material);
     SetVisibility(Display != nullptr);
 }

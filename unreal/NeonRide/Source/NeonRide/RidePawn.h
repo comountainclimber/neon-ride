@@ -6,6 +6,7 @@
 
 class ASkyway;
 class UCameraComponent;
+class UPointLightComponent;
 class ATrafficVehicleActor;
 class URideWeather;
 class URideInstruments;
@@ -44,6 +45,7 @@ class ARidePawn : public APawn
     UPROPERTY() TObjectPtr<USceneComponent> Body;
     UPROPERTY() TObjectPtr<USceneComponent> Ejected;
     UPROPERTY() TObjectPtr<USkeletalMeshComponent> CrashMesh;
+    UPROPERTY() TObjectPtr<UPointLightComponent> CrashFill;
     UPROPERTY() TObjectPtr<UCameraComponent> Camera;
     UPROPERTY() TObjectPtr<URideWeather> Weather;
     UPROPERTY() TObjectPtr<URideInstruments> Instruments;

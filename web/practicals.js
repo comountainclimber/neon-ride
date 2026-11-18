@@ -1,7 +1,26 @@
 import * as T from 'three';
 
-export function practicals(scene,manifest,glyphs){
+export function practicals(scene,manifest,glyphs,circuit){
   const pose=new T.Object3D();
+  // The flyover carries the film props on maintenance platforms outside its crash barriers.
+  const samples=Array.from({length:Math.ceil(circuit.length/4)},(_,i)=>circuit.frame(i*4));
+  const verge=manifest.items.filter(([key])=>!key.startsWith('tower'));
+  const hardware=new T.MeshStandardMaterial({color:0x35404c,metalness:.62,roughness:.48});
+  const geom=new T.BoxGeometry(),plates=new T.InstancedMesh(geom,hardware,verge.length*3);
+  const from=new T.Vector3(),to=new T.Vector3(),axis=new T.Vector3(1,0,0),delta=new T.Vector3();
+  const beam=(i,a,b,height,width)=>{
+    delta.subVectors(b,a);pose.position.copy(a).lerp(b,.5);pose.quaternion.setFromUnitVectors(axis,delta.clone().normalize());
+    pose.scale.set(delta.length(),height,width);pose.updateMatrix();plates.setMatrixAt(i,pose.matrix);
+  };
+  verge.forEach(([key,x,y,h,size],i)=>{
+    let f=samples[0],d=Infinity;for(const sample of samples){const q=(sample.x-x)**2+(sample.z-y)**2;if(q<d){d=q;f=sample;}}
+    const side=Math.sign((x-f.x)*f.rx+(y-f.z)*f.rz),w=key.startsWith('lamp')?1.30:Math.min(10,size*.65);
+    const roadX=f.x+f.rx*7.0*side,roadZ=f.z+f.rz*7.0*side,roadY=f.h-7*side*Math.sin(f.bank);
+    from.set(roadX,roadY-.56,roadZ);to.set(x,h-.34,y);beam(i*3,from,to,.34,Math.max(.65,w*.36));
+    from.y-=1.3;to.lerp(from,.10);beam(i*3+1,from,to,.18,.22);
+    pose.position.set(x,h-.16,y);pose.rotation.set(0,-f.yaw,0);pose.scale.set(w,.32,w);pose.updateMatrix();plates.setMatrixAt(i*3+2,pose.matrix);
+  });
+  scene.add(plates);pose.scale.setScalar(1);pose.quaternion.identity();
   const colors=[0x92edff,0xffbb80,0xff71a7,0x83ffe0];
   const lampItems=manifest.items.filter(([key])=>key.startsWith('lamp'));
   const lamps=new T.InstancedMesh(new T.BoxGeometry(.36,.15,.64),new T.MeshBasicMaterial(),lampItems.length);

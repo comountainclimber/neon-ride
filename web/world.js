@@ -127,7 +127,7 @@ export async function makeWorld(canvas,circuit,onLoad){
     const tex=await texLoader.loadAsync('./assets/visual/'+n+'.webp');tex.colorSpace=n==='asphalt-normal'||n==='asphalt-rough'?T.NoColorSpace:T.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();onLoad(++loaded,loadList.length+12);return tex;
   })),fetch('./scenery.json').then(r=>r.json()),...modelLoaders]);
   environment(scene,skies);
-  practicals(scene,manifest,skies.slice(6));
+  practicals(scene,manifest,skies.slice(6),circuit);
   const track=createTrack(scene,circuit,skies.slice(2,6)),refresh=staticScenery(scene,manifest.items,models);
   function clone(key,size){
     const asset=models.get(key),group=new T.Group(),copy=asset.obj.clone(true);copy.scale.multiplyScalar(size/asset.length);group.add(copy);return group;
@@ -149,6 +149,12 @@ export async function makeWorld(canvas,circuit,onLoad){
   let suit;vesper.obj.traverse(o=>{if(o.isSkinnedMesh)suit=o;});
   const foot=V();
   const riderMount=new T.Group();riderMount.add(rider);scene.add(riderMount);
+  const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCanvas.height=128;
+  const sc=shadowCanvas.getContext('2d'),rad=sc.createRadialGradient(64,64,0,64,64,64);
+  rad.addColorStop(0,'#0a1016cf');rad.addColorStop(.45,'#09121b7f');rad.addColorStop(1,'#09121b00');sc.fillStyle=rad;sc.fillRect(0,0,128,128);
+  const shadowMat=new T.MeshBasicMaterial({map:new T.CanvasTexture(shadowCanvas),transparent:true,depthWrite:false});
+  const shadowGeo=new T.PlaneGeometry(1,1);shadowGeo.rotateX(-Math.PI/2);
+  const shadow=new T.Mesh(shadowGeo,shadowMat);scene.add(shadow);
   const visorLight=new T.PointLight(0xc2eaff,19,10,1.6);scene.add(visorLight);
   const carList=Array.from({length:14},(_,i)=>{
     const truck=circuit.car(i,0).truck,model=truck?'truck':'cab',root=new T.Group(),hi=clone('detail/'+model,truck?13:4.8),low=clone('models/'+model,truck?13:4.8);
@@ -174,7 +180,7 @@ export async function makeWorld(canvas,circuit,onLoad){
   function draw(p,look){
     const f=circuit.frame(p.s,p.lateral),time=p.elapsed,crash=p.crashAge>=0,pose=crash?circuit.crash():null;
     setFrame(bike,f,crash?.1:0,crash?pose.bikeRoll:p.lean*.55);
-    riderMount.visible=crash;hands.visible=!crash;visorLight.visible=crash;
+    riderMount.visible=shadow.visible=crash;hands.visible=!crash;visorLight.visible=crash;
     display.update(p);
     let viewYaw=f.yaw+look.yaw;
     if(crash){
@@ -190,9 +196,11 @@ export async function makeWorld(canvas,circuit,onLoad){
         }
         riderMount.position.y+=Math.max(0,rf.h+.025-bottom);
       }
-      const side=p.crashSide*(3.4+1.4*Math.min(1,p.crashAge));
-      camera.position.set(rf.x-f.fx*pose.cameraDistance+f.rx*side,rf.h+pose.cameraHeight,rf.z-f.fz*pose.cameraDistance+f.rz*side);
-      target.set(rf.x,rf.h+Math.max(.65,pose.riderHeight+.15),rf.z);camera.up.set(0,1,0);camera.lookAt(target);
+      const side=p.crashSide*pose.cameraDistance*.62,ahead=pose.cameraDistance*.43;
+      camera.position.set(rf.x+rf.fx*ahead+rf.rx*side,rf.h+pose.cameraHeight*.80,rf.z+rf.fz*ahead+rf.rz*side);
+      target.set(rf.x,rf.h+Math.max(.54,pose.riderHeight),rf.z);camera.up.set(0,1,0);camera.lookAt(target);
+      setFrame(shadow,rf,.04);shadow.scale.set(2.05+pose.riderHeight*.21,1,1.12+pose.riderHeight*.19);
+      shadowMat.opacity=.70/(.7+pose.riderHeight*.65);
       visorLight.position.copy(camera.position).lerp(target,.68).y+=2;
       viewYaw=Math.atan2(target.z-camera.position.z,target.x-camera.position.x);
     }else{
@@ -202,7 +210,7 @@ export async function makeWorld(canvas,circuit,onLoad){
       aim.set(Math.cos(viewYaw)*Math.cos(pitch),Math.sin(pitch),Math.sin(viewYaw)*Math.cos(pitch));
       camera.up.set(0,1,0);camera.lookAt(target.copy(camera.position).add(aim));camera.rotateZ(-lean*.57);
     }
-    const fov=crash?56:65+9*p.v/82+3*p.boost;
+    const fov=crash?43:65+9*p.v/82+3*p.boost;
     if(Math.abs(fov-camera.fov)>.015){camera.fov=fov;camera.updateProjectionMatrix();}
     refresh({position:camera.position,yaw:viewYaw});
     carList.forEach(({root,hi,low},i)=>{

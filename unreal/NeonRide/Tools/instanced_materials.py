@@ -38,7 +38,7 @@ def prepare_instancing():
         parents[path] = local
         return local
 
-    for key in ("M_Neon","M_RainAsphalt","M_Facade","M_Glass"):
+    for key in ("M_Neon","M_RainAsphalt","M_Facade","M_Glass",*(f"M_Glyph{i}" for i in range(1,7))):
         instanced_parent(assets.load_asset("/Game/Environment/"+key))
     for item in assets.list_assets("/Game/Film",recursive=True,include_folder=False):
         if "/Materials/" in item:

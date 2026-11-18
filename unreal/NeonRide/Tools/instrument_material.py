@@ -17,14 +17,23 @@ float3 teal=float3(.17,.88,.95), amber=float3(1.,.49,.08);
 float3 c=float3(.003,.009,.014);
 float2 edge=min(p,1.-p);
 c+=teal*.48*(1.-smoothstep(.002,.01,min(edge.x,edge.y*.34)));
-float2 digits=(p-float2(.042,.28))/float2(.112,.50);
-if (all(digits>=0) && digits.x<3 && digits.y<1) {
+float2 digits=(p-float2(.041,.28))/float2(.119,.50);
+if(all(digits>=0) && digits.x<3 && digits.y<1) {
     int kmh=(int)round(Data.r*300.);
-    int col=(int)digits.x;
+    int col=int(digits.x);
     int digit=(col==0 ? kmh/100 : (col==1 ? kmh/10 : kmh))%10;
-    int cell=digit+(digit>=4 ? 1 : 0);
-    float2 atlas=(float2(41,22)+(float2(cell%8,cell/8)+frac(digits))*float2(182,125))/float2(1536,1024);
-    c+=Texture2DSampleLevel(Glyphs,GlyphsSampler,atlas,0).r*float3(.85,.97,1.)*1.7;
+    int masks[10]={63,6,91,79,102,109,125,7,127,111};
+    int mask=masks[digit];
+    float2 q=frac(digits);
+    float2 a[7]={float2(.19,.06),float2(.74,.13),float2(.74,.56),float2(.19,.92),float2(.13,.56),float2(.13,.13),float2(.19,.49)};
+    float2 b[7]={float2(.67,.06),float2(.74,.42),float2(.74,.85),float2(.67,.92),float2(.13,.85),float2(.13,.42),float2(.67,.49)};
+    float ink=0;
+    for(int i=0;i<7;i++) if((mask>>i)&1) {
+        float2 ab=b[i]-a[i];
+        float2 delta=(q-a[i])-ab*saturate(dot(q-a[i],ab)/dot(ab,ab));
+        ink=max(ink,1.-smoothstep(.041,.072,length(delta*float2(.95,1.))));
+    }
+    c+=ink*float3(.86,.98,1.)*1.5;
 }
 float2 rev=(p-float2(.044,.12))/float2(.91,.075);
 if(all(rev>=0)&&all(rev<1)&&frac(rev.x*32.)<.78)
