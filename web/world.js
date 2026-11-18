@@ -228,6 +228,7 @@ export async function makeWorld(canvas,circuit,onLoad){
     const crash=!foot&&p.crashAge>=0,external=Boolean(crash||foot),pose=external?circuit.crash():null;
     const footFrame=foot?circuit.frame(foot.s,foot.lateral):null;
     crashShot.visible(crash);hands.visible=display.panel.visible=cabinetLight.visible=!external;
+    beam.intensity=foot?95:570;
     if(!external)display.update(p);
     if(!foot)stoodAt=null;
     const heading=f.yaw+(p.headingError||0);

@@ -68,7 +68,7 @@ function parkedContact(scene,samples){
       return {x:128+relative.dot(forward)*256/3.45,y:128+relative.dot(right)*256/3.45,h:relative.dot(up)};
     });
     ctx.clearRect(0,0,256,256);
-    for(const [height,blur,alpha] of [[1.2,11,.24],[.48,6,.44],[.24,3.5,.55],[.09,1.2,.65]]){
+    for(const [height,blur,alpha] of [[1.2,12,.37],[.48,6,.58],[.24,3.5,.69],[.09,1.2,.82]]){
       const edge=outline(points.filter(p=>p.h<height));if(edge.length<3)continue;
       ctx.filter='blur('+blur+'px)';ctx.fillStyle='rgba(6,10,13,'+alpha+')';ctx.beginPath();
       edge.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();
@@ -154,7 +154,7 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
     shadow.scale.set(length*(1+height*.12),1,width*(1+height*.18));
     shadow.material.opacity=.72/(1+height*.88);
   }
-  function placeBike(bf,pose){
+  function placeBike(bf,pose,clearance=.014){
     setFrame(bike,bf,pose.bikeHeight);
     bike.quaternion.multiply(spin.setFromEuler(angles.set(pose.bikeRoll,-pose.bikeYaw,pose.bikePitch,'YZX')));
     bikeCOM.copy(bike.position);
@@ -166,14 +166,14 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
       if(below<lowest){lowest=below;contact.copy(scratch);}
     }
     const bikeClearance=pose.bikeHeight*frameUp.y+lowest;
-    const correction=(.014-bikeClearance)/frameUp.y;
+    const correction=(clearance-bikeClearance)/frameUp.y;
     bikeCOM.y+=pose.bikeGround?correction:Math.max(0,correction);
     bike.position.copy(bikeCOM).sub(scratch.copy(bikeCenter).applyQuaternion(bike.quaternion));
     contact.add(bikeCOM);
     shade(bikeShadow,bf,Math.max(0,bikeCOM.y-bf.h-.29),1.05,2.55,pose.bikeYaw);
   }
   function parked(bf,pose){
-    placeBike(bf,pose);bikeShadow.visible=false;parkedShade.shadow.visible=true;
+    placeBike(bf,pose,.002);bikeShadow.visible=false;parkedShade.shadow.visible=true;
     parkedShade.update(bikeCOM,bike,bf,floorPoint,frameUp);
     light.visible=true;light.position.copy(bikeCOM).y+=1.45;
   }
