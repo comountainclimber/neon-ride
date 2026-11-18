@@ -8,6 +8,7 @@ import unreal as ue
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from import_film import import_models
 from import_rider import import_rider
+from import_couriers import import_couriers
 from import_environment import build_environment
 from instanced_materials import prepare_instancing
 
@@ -24,6 +25,7 @@ def import_all():
     import_models(Path(os.getenv("NEON_RIDE_MODELS", str(models))))
     build_environment(Path(os.getenv("NEON_RIDE_ART", str(art))))
     import_rider(local / "Rider")
+    import_couriers(project)
     prepare_instancing()
     ue.log("NEON_RIDE_ASSETS_READY")
 

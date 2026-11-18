@@ -13,6 +13,21 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 
+namespace
+{
+using FRows = TArray<TSharedPtr<FJsonValue>>;
+FRows CityRows(const FRows& Old, const TSharedPtr<FJsonObject>& City, const TCHAR* Remove, const TCHAR* Add)
+{
+    if (!City) return Old;
+    TSet<int32> Removed;
+    for (const auto& Index:City->GetArrayField(Remove)) Removed.Add(int32(Index->AsNumber()));
+    FRows Rows;
+    for(int32 I=0; I<Old.Num(); ++I) if(!Removed.Contains(I)) Rows.Add(Old[I]);
+    Rows.Append(City->GetArrayField(Add));
+    return Rows;
+}
+}
+
 AFilmDistrict::AFilmDistrict()
 {
     SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("FilmScenery")));
@@ -52,7 +67,12 @@ void AFilmDistrict::BeginPlay()
     if (FFileHelper::LoadFileToString(Json, *File) &&
         FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), Scene) && Scene.IsValid())
     {
-        for (const auto &Value : Scene->GetArrayField(TEXT("items")))
+        TSharedPtr<FJsonObject> City;
+        FString Streets;
+        if(FFileHelper::LoadFileToString(Streets,*(FPaths::ProjectContentDir()/TEXT("Circuit/courier-scenery.json"))))
+            FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Streets),City);
+        const auto Items=CityRows(Scene->GetArrayField(TEXT("items")),City,TEXT("removedItems"),TEXT("items"));
+        for (const auto &Value : Items)
         {
             const auto &P = Value->AsArray();
             if (P.Num() != 6)
@@ -61,10 +81,10 @@ void AFilmDistrict::BeginPlay()
             AddModel(*Key, FVector(P[1]->AsNumber(), P[2]->AsNumber(), P[3]->AsNumber()) * 100.,
                      FRotator(0, FMath::RadiansToDegrees(P[5]->AsNumber()), 0), P[4]->AsNumber() * 100.);
         }
-        UCircuitPracticals::Populate(*this, Scene->GetArrayField(TEXT("items")));
+        UCircuitPracticals::Populate(*this, Items);
         const TArray<TSharedPtr<FJsonValue>> *Infill = nullptr;
         if (Scene->TryGetArrayField(TEXT("infill"), Infill))
-            PopulateMidrises(*Infill);
+            PopulateMidrises(CityRows(*Infill,City,TEXT("removedInfill"),TEXT("infill")));
         LoadAirspace(Scene->GetObjectField(TEXT("airspace")));
     }
     else

@@ -9,7 +9,10 @@ import tempfile
 
 PROJECT = Path(__file__).resolve().parents[1]
 CORE = PROJECT / "Source" / "NeonRide"
-EXPORTS = ("reset_ride", "loop_length", "course_frame", "traffic_car", "drive", "crash_pose")
+EXPORTS = ("reset_ride", "loop_length", "course_frame", "traffic_car", "drive", "crash_pose",
+           "road_info", "road_name", "stop_label", "stop_position", "job_label", "job_info",
+           "shift_ptr", "shift_reset", "shift_validate", "shift_accept", "shift_handoff",
+           "shift_next", "shift_nearby", "shift_route")
 
 
 def digest(path, normalize=False):
@@ -29,16 +32,20 @@ def main():
     manifest = args.web / "core-version.json"
     if not args.check:
         with tempfile.TemporaryDirectory(dir=args.web) as work:
-            obj = Path(work) / "circuit.o"
             binary = Path(work) / wasm.name
-            subprocess.run([args.zig, "c++", "-target", "wasm32-freestanding", "-O3",
-                            "-fno-exceptions", "-fno-rtti", "-c", CORE / "CircuitCore.cpp",
-                            "-o", obj], check=True)
+            objects = []
+            for name in ("CircuitCore", "CourierCore"):
+                obj = Path(work) / (name + ".o")
+                subprocess.run([args.zig, "c++", "-target", "wasm32-freestanding", "-O3",
+                                "-fno-exceptions", "-fno-rtti", "-c", CORE / (name + ".cpp"),
+                                "-o", obj], check=True)
+                objects.append(obj)
             subprocess.run([args.zig, "wasm-ld", "--no-entry", "--allow-undefined",
                             *("--export=" + name for name in EXPORTS),
-                            "--export-memory", "--strip-all", obj, "-o", binary], check=True)
+                            "--export-memory", "--strip-all", *objects, "-o", binary], check=True)
             os.replace(binary, wasm)
-    hashes = {name: digest(CORE / name, True) for name in ("CircuitCore.cpp", "CircuitCore.h")}
+    hashes = {name: digest(CORE / name, True) for name in
+              ("CircuitCore.cpp", "CircuitCore.h", "CourierCore.cpp", "CourierCore.h")}
     hashes[wasm.name] = digest(wasm)
     if args.check:
         if json.loads(manifest.read_text()) != hashes:

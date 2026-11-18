@@ -26,23 +26,52 @@ const rainSurfaceShader=`
     return displacement/max(.001,distanceToDrop)*slope*envelope;
   }`;
 
-export function createTrack(scene, circuit, [deck,asphalt,normals,roughness]) {
-  const count=Math.ceil(circuit.length/4);
-  function strip(points, material) {
-    const xyz=[],uv=[],index=[];
-    for(let i=0;i<=count;i++) {
-      const s=i*circuit.length/count;
-      points.forEach(([l,h])=>{
-        const f=circuit.frame(s,l);xyz.push(f.x,f.h+h,f.z);uv.push(l,s);
-      });
-      for(let j=0;i && j<points.length-1;j++){
-        const a=(i-1)*points.length+j,b=a+points.length;
-        index.push(a,a+1,b,a+1,b+1,b);
+export function createTrack(scene, circuit, [deck,asphalt,normals,roughness], network) {
+  function strip(points, material, asphaltSurface=false) {
+    const xyz=[],uv=[],mark=[],clearance=[],index=[];
+    function vertex(x,y,z,u,v,paint,clear) {
+      xyz.push(x,y,z);uv.push(u,v);mark.push(paint);clearance.push(clear);return mark.length-1;
+    }
+    function intersection(a,b){
+      const t=clearance[a]/(clearance[a]-clearance[b]),mix=(data,n,k)=>T.MathUtils.lerp(data[a*n+k],data[b*n+k],t);
+      return vertex(mix(xyz,3,0),mix(xyz,3,1),mix(xyz,3,2),mix(uv,2,0),mix(uv,2,1),mix(mark,1,0),0);
+    }
+    function triangle(a,b,c){
+      if(clearance[a]>=0&&clearance[b]>=0&&clearance[c]>=0){index.push(a,b,c);return;}
+      if(clearance[a]<0&&clearance[b]<0&&clearance[c]<0)return;
+      const ids=[a,b,c],poly=[];
+      for(let j=0;j<3;j++){
+        const curr=ids[j],next=ids[(j+1)%3];
+        if(clearance[curr]>=0)poly.push(curr);
+        if((clearance[curr]<0)!==(clearance[next]<0))poly.push(intersection(curr,next));
+      }
+      for(let j=1;j+1<poly.length;j++)index.push(poly[0],poly[j],poly[j+1]);
+    }
+    for(const route of network.roads){
+      const count=Math.ceil(route.length/3);let previousRow=-1;
+      for(let i=0;i<=count;i++) {
+        const d=i*route.length/count,row=mark.length,prev=previousRow;previousRow=row;
+        for(const [l,h] of points){
+          const f=network.frame(route,d,l);
+          const adj=network.adjacent(f,route.id);
+          const clear=asphaltSurface&&route.id?network.adjacent(f,route.id,true)-6.52:1;
+          vertex(f.x,f.h+h,f.z,l,d,T.MathUtils.smoothstep(adj,6.7,9.5),clear);
+        }
+        if(!i)continue;
+        if(!asphaltSurface){
+          const side=Math.sign(points[0][0]),mid=d-route.length/(2*count);
+          if(network.stopOpening(route,route.start+mid,side)||network.adjacent(network.frame(route,mid,side*6.78),route.id)<7.8)continue;
+        }
+        for(let j=0;j<points.length-1;j++){
+          const a=prev+j,b=row+j;
+          triangle(a,a+1,b);triangle(a+1,b+1,b);
+        }
       }
     }
     const g=new T.BufferGeometry();
     g.setAttribute('position',new T.Float32BufferAttribute(xyz,3));
     g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
+    if(asphaltSurface)g.setAttribute('junctionPaint',new T.Float32BufferAttribute(mark,1));
     g.setIndex(index);g.computeVertexNormals();
     const m=new T.Mesh(g,material);scene.add(m);return m;
   }
@@ -52,9 +81,9 @@ export function createTrack(scene, circuit, [deck,asphalt,normals,roughness]) {
   const roadMat=new T.MeshStandardMaterial({color:0xb6c1c8,map:asphalt,normalMap:normals,normalScale:new T.Vector2(.40,.40),roughnessMap:roughness,metalness:.18,roughness:.88});
   roadMat.onBeforeCompile=sh=>{
     Object.assign(sh.uniforms,{roadReflection:{value:mirror.getRenderTarget().texture},roadProjection:projection,roadTime:clock,roadGrime:{value:deck},wetPlane:plane});
-    sh.vertexShader='varying vec2 trackUV; varying vec3 wetWorld; varying vec4 roadProjectionUV; uniform mat4 roadProjection;\n'+sh.vertexShader;
-    sh.vertexShader=sh.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\ntrackUV=uv; wetWorld=(modelMatrix*vec4(position,1.)).xyz;roadProjectionUV=roadProjection*vec4(wetWorld,1.);');
-    sh.fragmentShader='varying vec2 trackUV; varying vec3 wetWorld; varying vec4 roadProjectionUV; uniform vec4 wetPlane; uniform sampler2D roadReflection; uniform float roadTime; uniform sampler2D roadGrime;\n'+rainSurfaceShader+'\n'+sh.fragmentShader;
+    sh.vertexShader='attribute float junctionPaint; varying float paintOpacity; varying vec2 trackUV; varying vec3 wetWorld; varying vec4 roadProjectionUV; uniform mat4 roadProjection;\n'+sh.vertexShader;
+    sh.vertexShader=sh.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\npaintOpacity=junctionPaint;trackUV=uv; wetWorld=(modelMatrix*vec4(position,1.)).xyz;roadProjectionUV=roadProjection*vec4(wetWorld,1.);');
+    sh.fragmentShader='varying float paintOpacity; varying vec2 trackUV; varying vec3 wetWorld; varying vec4 roadProjectionUV; uniform vec4 wetPlane; uniform sampler2D roadReflection; uniform float roadTime; uniform sampler2D roadGrime;\n'+rainSurfaceShader+'\n'+sh.fragmentShader;
     sh.fragmentShader=sh.fragmentShader.replace('#include <normal_fragment_maps>',`
       #include <normal_fragment_maps>
       vec2 texNoise=texture2D(roadGrime,vMapUv*.42).rg;
@@ -109,10 +138,10 @@ export function createTrack(scene, circuit, [deck,asphalt,normals,roughness]) {
       float center=(1.-smoothstep(.07-halfLine,.07+halfLine,abs(x)))*(1.-smoothstep(3.2-fwidth(s),3.2+fwidth(s),mod(s+1.,12.)));
       float wear=clamp(.53+2.*texture2D(roughnessMap,vRoughnessMapUv*.9).r-.34*rut,.53,1.);
       vec3 stripe=vec3(.39,.45,.40)+outgoingLight*.63;
-      outgoingLight=mix(outgoingLight,stripe,max(edge*.75,center*.85)*wear);
+      outgoingLight=mix(outgoingLight,stripe,max(edge*.75,center*.85)*wear*paintOpacity);
       #include <opaque_fragment>`);
   };
-  const road=strip([[-6.55,0],[0,0],[6.55,0]],roadMat);
+  const road=strip([[-6.55,0],[-3.25,0],[0,0],[3.25,0],[6.55,0]],roadMat,true);
   const steel=new T.MeshStandardMaterial({color:0x304353,metalness:.63,roughness:.43,side:T.DoubleSide});
   const concrete=new T.MeshStandardMaterial({color:0x344051,roughness:.68,side:T.DoubleSide});
   const rail=new T.MeshBasicMaterial({color:new T.Color(.14,.85,.82)});

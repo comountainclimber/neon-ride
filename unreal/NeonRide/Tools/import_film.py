@@ -4,11 +4,11 @@ from pathlib import Path
 import unreal as ue
 
 
-def import_models(source):
+def import_models(source, selection=None):
     assets = ue.get_editor_subsystem(ue.EditorAssetSubsystem)
     tools = ue.AssetToolsHelpers.get_asset_tools()
-    files = sorted(source.glob("*.glb"))
-    if len(files) != 18:
+    files = [source / (key + ".glb") for key in selection] if selection else sorted(source.glob("*.glb"))
+    if not selection and len(files) != 18:
         raise RuntimeError(f"Expected the 18 film models in {source}, found {len(files)}")
     def retain_glass_geometry(key, mesh):
         if key == "bike" and not mesh.get_editor_property("allow_cpu_access"):

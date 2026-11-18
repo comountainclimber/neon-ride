@@ -1,8 +1,14 @@
 # Neon Ride
 
-## Play the driving game
+## Ride the night shift
 
-Ride the 5.28 km elevated circuit in the browser or in Unreal Engine 5.8.4 on Windows. W/S accelerate and brake, A/D turn the bike, and Shift fires the rechargeable nitro tank. Centering the steering holds the current heading, including on bends. The cockpit gauge shows the remaining charge.
+Play Vesper's motorcycle courier shift in the browser or Unreal Engine 5.8.4 on Windows. The 5.28 km express ring connects Rainline's streets, the Floodworks Canal and the loading docks in Glass Heights. The entire road network covers 11.51 km. Ride in the right lane at a signed exit to take the branch. The center and left lanes continue ahead.
+
+Start at Rainline Repair. Open dispatch, reserve up to two parcels and collect them from the saddle. Ride to the named business, pull into the right lane at walking speed and hand the parcel to its recipient. Select an address on the city map for guidance. Express parcels have a delivery window that starts at pickup. Late parcels can still be delivered. Returning clients remember your deliveries, and Sol opens the Aurora service ramp after the first cinema delivery.
+
+Each shift offers eight contracts. Finish First Night, Regular Service and First Light to bring the dawn screening to Aurora Cinema. Keep riding and taking new shifts afterwards. The six original Tripo client models double as the Unreal import sources in `web/assets/models/`.
+
+W/S accelerate and brake, A/D turn the bike, and Shift fires the rechargeable nitro tank. Centering the steering holds the current heading, including on bends. The cockpit gauge shows the remaining charge.
 
 Traffic and guardrails respond to the angle and closing speed of contact. A scrape costs speed. A hard impact separates Vesper from the bike, and each carries its own momentum into the landing, bounce and slide. The bike resets at rest in a traffic gap after the crash.
 
@@ -13,7 +19,7 @@ Both sets of handlebar mirrors show the road behind the bike. On a phone, slide 
 - GitHub deploys the `web/` directory to the linked Vercel project on updates to `main`.
 - The four-layer motorcycle mix uses real motorcycle recordings by dklon and a Kenney turbine layer. [Audio credits and licenses](web/assets/audio/engine-credits.txt)
 
-Both editions use the C++ simulation in `unreal/NeonRide/Source/NeonRide/CircuitCore.cpp`. With Zig 0.14.1 on PATH, run `python unreal/NeonRide/Tools/build_circuit_wasm.py` after changing it. Run the same command with `--check` to verify the packaged module. The scenery manifest in `web/scenery.json` also ships with the Unreal project.
+Both editions use the same C++ driving and courier rules in `unreal/NeonRide/Source/NeonRide/`. With Zig 0.14.1 on PATH, run `python unreal/NeonRide/Tools/build_circuit_wasm.py` after changing them. Run the same command with `--check` to verify the packaged module. Run `node unreal/NeonRide/Tools/check_courier.mjs web/circuit.js` to drive the delivery regression. The original and courier scenery manifests also ship with Unreal.
 
 ## Original film
 

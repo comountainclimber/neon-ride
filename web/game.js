@@ -1,12 +1,14 @@
 import {loadCircuit} from './circuit.js';
-import {makeWorld,sector} from './world.js';
+import {makeWorld} from './world.js';
 import {MotorcycleSound} from './engine-sound.js';
 import {touchControls} from './touch-controls.js';
+import {createCourierDesk} from './courier-desk.js';
 
 const element=id=>document.getElementById(id),canvas=element('world');
 const storage='neon-ride.circuit.v1',keys=new Set(),look={yaw:0,pitch:0};
 let circuit,world,active=false,began=false,back=null,drag=null,lastTap=null,lastTime=0,accumulator=0,lastSave=0;
 let sound=true,saved=null,toastTimer,controllerMenu=false,lastCrash=false,lastLap=0,padReset=false;
+let desk, firstDispatch=false, padHeld=[];
 try{saved=JSON.parse(localStorage.getItem(storage));sound=localStorage.getItem(storage+'.sound')!=='off';}catch{}
 const engineSound=new MotorcycleSound();
 const touch=touchControls(element('touch'),()=>active);
@@ -27,7 +29,8 @@ function audioState(){
 function save(){
   if(!began||!circuit)return;
   const p=circuit.ride();if(p.crashAge>=0)return;
-  saved={s:p.s,lateral:p.lateral,laps:p.laps,charge:p.charge,elapsed:p.elapsed,headingError:p.headingError||0};
+  saved={s:p.s,lateral:p.lateral,laps:p.laps,charge:p.charge,elapsed:p.elapsed,headingError:p.headingError||0,
+    courier:circuit.courier.state(),navigation:desk?.preferences()};
   try{localStorage.setItem(storage,JSON.stringify(saved));}catch{}
 }
 function notify(text){clearTimeout(toastTimer);element('notice').textContent=text;toastTimer=setTimeout(()=>element('notice').textContent='',2200);}
@@ -40,6 +43,8 @@ function stop(){active=false;accumulator=0;clearInputs();audioState();save();}
 function play(){
   if(!world)return;
   clearInputs();active=began=true;document.body.dataset.screen='game';lastTime=performance.now();canvas.focus({preventScroll:true});audioState();
+  desk?.refresh(true);
+  if(firstDispatch){firstDispatch=false;desk.open('jobs');}
 }
 function open(id,previous=null){
   if(active)stop();document.querySelectorAll('dialog[open]').forEach(d=>d.close());back=previous;element(id).showModal();
@@ -51,16 +56,17 @@ function close(){
 }
 function reset(){
   if(!active)return;
-  clearInputs();circuit.restore(null);look.yaw=look.pitch=0;accumulator=0;lastTime=performance.now();
+  clearInputs();const time=circuit.ride().elapsed, shift=circuit.courier.state();circuit.restore({...saved,s:0,lateral:2.65,headingError:0,elapsed:time});circuit.courier.restore(shift);look.yaw=look.pitch=0;accumulator=0;lastTime=performance.now();
   lastCrash=false;lastLap=0;hud(circuit.ride());save();notify('Back at Rainline');
 }
 function title(){
   stop();document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.body.dataset.screen='title';
-  element('enter').innerHTML='Continue ride <span>→</span>';back=null;
+  element('enter').innerHTML='Continue shift <span>→</span>';back=null;
 }
 element('enter').onclick=play;element('how').onclick=()=>open('help');element('pauser').onclick=()=>open('menu');
 element('brand').onclick=e=>{e.preventDefault();if(active)open('menu');};element('resume').onclick=close;
 element('menuHelp').onclick=()=>open('help','menu');element('menuTitle').onclick=title;
+element('menuDesk').onclick=()=>desk.open();
 element('sound').onclick=()=>{sound=!sound;audioState();try{localStorage.setItem(storage+'.sound',sound?'on':'off');}catch{}};
 element('pauseSound').onclick=()=>element('sound').click();
 const canFullscreen=Boolean(document.fullscreenEnabled && document.documentElement.requestFullscreen);
@@ -103,7 +109,12 @@ document.addEventListener('keydown',e=>{
   if(e.repeat)return;if(e.code==='Escape'||e.code==='KeyP'){e.preventDefault();open('menu');}
   if(e.code==='KeyC')look.pitch=look.yaw=0;
   if(e.code==='KeyR')reset();
+  if(e.code==='KeyM')desk.open();
+  if(e.code==='KeyE')desk.interact();
 });
+document.addEventListener('keydown',e=>{
+  if(e.code==='KeyM' && element('dispatch').open && !e.repeat){e.preventDefault();e.stopImmediatePropagation();close();}
+},true);
 document.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{if(active)open('menu');});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&active)open('menu');});
 window.addEventListener('pagehide',save);
@@ -113,11 +124,10 @@ function input(pad){
   const steering=Number(down('KeyD','ArrowRight'))-Number(down('KeyA','ArrowLeft'))+touch.state.steer+(Math.abs(stick)>.12?stick:0);
   return [Math.max(Number(down('KeyW','ArrowUp')),buttons[7]?.value||0,touch.state.gas),
     Math.max(Number(down('KeyS','ArrowDown')),buttons[6]?.value||0,touch.state.brake),Math.max(-1,Math.min(1,steering)),
-    down('ShiftLeft','ShiftRight')||touch.state.boost||buttons[2]?.pressed||buttons[0]?.pressed||false];
+    down('ShiftLeft','ShiftRight')||touch.state.boost||buttons[2]?.pressed||false];
 }
 function hud(p){
-  element('area').textContent=sector(p.s,circuit.length);element('distance').textContent=(p.s/1000).toFixed(2)+' km';
-  element('meter').style.width=(100*p.s/circuit.length).toFixed(3)+'%';element('lap').textContent='Lap '+String(p.laps+1).padStart(2,'0');
+  desk.refresh();
   const speed=Math.round(p.v*3.6),charge=Math.round(p.charge*100);
   const stats=element('telemetry');stats.value=speed+' km/h · Gear '+p.gear+' · Nitro '+charge+'%';
   stats.dataset.speed=speed;stats.dataset.charge=charge;stats.dataset.crash=String(p.crashAge>=0);stats.dataset.boost=String(Boolean(p.boost));
@@ -130,14 +140,29 @@ function hud(p){
     }
   }
   if(p.crashAge<0&&lastCrash)notify('Bike recovered');
-  if(p.laps>lastLap)notify('Lap '+(p.laps+1));lastLap=p.laps;lastCrash=p.crashAge>=0;
+  lastLap=p.laps;lastCrash=p.crashAge>=0;
   if(sound)tracks[1].volume=.025+.28*Math.min(1,p.v/82)+.1*p.boost;
 }
 function update(now){
   requestAnimationFrame(update);
   const pad=Array.from(navigator.getGamepads?.()||[]).find(g=>g?.connected);
-  const menu=Boolean(pad?.buttons[9]?.pressed||pad?.buttons[8]?.pressed);
-  if(menu&&!controllerMenu){if(active)open('menu');else if(element('menu').open)close();}
+  const menu=Boolean(pad?.buttons[9]?.pressed);
+  const held=pad?.buttons.map(b=>b.pressed)??[], pressed=i=>held[i]&&!padHeld[i];
+  if(menu&&!controllerMenu){if(active)open('menu');else if(document.querySelector('dialog[open]'))close();}
+  else if(active && pressed(8))desk.open();
+  else if(active && pressed(0))desk.interact();
+  else if(!active && document.querySelector('dialog[open]')){
+    const dialog=document.querySelector('dialog[open]');
+    if(pressed(1)||pressed(8))close();
+    else if(pressed(0))document.activeElement?.click();
+    else if([12,13,14,15].some(pressed)){
+      const buttons=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled)')].filter(b=>b.getClientRects().length);
+      const delta=pressed(12)||pressed(14)?-1:1;
+      const next=buttons[(Math.max(0,buttons.indexOf(document.activeElement))+delta+buttons.length)%buttons.length];
+      next?.focus();
+    }
+  }else if(document.body.dataset.screen==='title' && pressed(0) && !element('enter').disabled)play();
+  padHeld=held;
   controllerMenu=menu;
   if(!active||!world)return;
   const elapsed=Math.min(.2,Math.max(0,(now-lastTime)/1000));accumulator+=elapsed;lastTime=now;
@@ -153,17 +178,20 @@ function update(now){
   }
   const controls=input(pad);
   while(accumulator>=1/120){circuit.drive(...controls,1/120);accumulator-=1/120;}
-  const p=circuit.ride();hud(p);engineSound.update(p,controls[0],controls[1]);world.draw(p,look,controls[1]);
+  const p=circuit.ride();hud(p);engineSound.update(p,controls[0],controls[1]);world.draw(p,look,controls[1],desk.view());
   if(now-lastSave>4000){lastSave=now;save();}
 }
 async function start(){
-  audioState();circuit=await loadCircuit();circuit.restore(saved);lastLap=circuit.ride().laps;
+  audioState();circuit=await loadCircuit();circuit.restore(saved);
+  if(saved?.courier)circuit.courier.restore(saved.courier);
+  desk=createCourierDesk(circuit,{open:()=>open('dispatch'),close,save,notify},saved?.navigation);
+  firstDispatch=!saved?.courier;lastLap=circuit.ride().laps;
   world=await makeWorld(canvas,circuit,(n,total)=>{
     const progress=Math.round(98*n/total)+'%';
     element('progress').textContent=progress;element('enter').style.setProperty('--loading',progress);
   });
   element('progress').textContent='99%';world.draw(circuit.ride(),look);
-  element('enter').innerHTML=(saved?'Continue ride':'Start ride')+' <span>→</span>';element('enter').disabled=false;
+  element('enter').innerHTML=(saved?.courier?'Continue shift':'Start shift')+' <span>→</span>';element('enter').disabled=false;
   requestAnimationFrame(update);
 }
 start().catch(e=>{

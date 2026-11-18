@@ -1,6 +1,10 @@
-# Neon Ride · Night Circuit
+# Neon Ride · Night Courier
 
-Ride a 5.28 km elevated circuit through Rainline, Glass Heights, Violet Reach and Lower Ring. The route climbs from 26 to 85 metres, banks through the skyline and returns to the start. Fourteen cabs and freighters share the lanes. Hitting traffic or striking a barrier at speed can eject Vesper. The rider and bike bounce and slide independently, and the cockpit returns after recovery.
+Ride Vesper's motorcycle through Rainline, Floodworks and Glass Heights. A 5.28 km express ring connects the district streets and six staffed service bays. Twenty cabs and freighters share the network. Hitting traffic or striking a barrier at speed can eject Vesper. The rider and bike bounce and slide independently, and the cockpit returns after recovery.
+
+Open dispatch to reserve up to two of the eight parcels offered each shift. Follow the marked pickup or choose an address on the map to explore. At a signed fork, ride in the right lane to take the branch or keep left to continue. Slow below 11 km/h in the right lane at the counter to collect or deliver. Timed parcels can still be delivered after the requested arrival. A first delivery to Aurora Cinema opens its service ramp from Floodworks to Glass Heights. Complete all eight deliveries to start the next manifest. Client history and ramp access carry forward.
+
+The three authored shifts are First Night, Regular Service and First Light. Completing First Light restores Aurora Cinema's dawn screening. Free riding and repeat manifests continue afterwards.
 
 | Action | Keyboard and mouse | Gamepad |
 | --- | --- | --- |
@@ -10,9 +14,11 @@ Ride a 5.28 km elevated circuit through Rainline, Glass Heights, Violet Reach an
 | Look around | Mouse | Right stick |
 | Face forward | C | Press right stick |
 | Pause, resume, save and quit | Esc | View / Create |
-| Restart at the circuit entrance | R | Y / Triangle |
+| Dispatch and city map | M or Tab | D-pad up |
+| Collect or deliver at a service bay | E | A / Cross |
+| Return to Rainline Repair | R | Y / Triangle |
 
-The two original mirror inserts show live views of the road and traffic behind the bike from a shared rear-facing camera. The physical dashboard shows speed, engine revs and nitro charge. Four engine layers respond to RPM, throttle load, shifts, braking and boost. The packaged game's audio attribution is in NeonRide/Content/Credits/engine-credits.txt. A full tank delivers about 3.8 seconds of boost. Let go to recharge after a 1.35-second cooldown. The tank refills in 8.5 seconds. Release the steering input to hold your world heading. You steer through each bend. Pausing or quitting saves your distance, lane, heading, lap count and charge. Your next session starts at rest.
+The two original mirror inserts show live views of the road and traffic behind the bike from a shared rear-facing camera. The physical dashboard shows speed, engine revs and nitro charge. Four engine layers respond to RPM, throttle load, shifts, braking and boost. The packaged game's audio attribution is in NeonRide/Content/Credits/engine-credits.txt. A full tank delivers about 3.8 seconds of boost. Let go to recharge after a 1.35-second cooldown. The tank refills in 8.5 seconds. Release the steering input to hold your world heading. Pausing or quitting saves your road, lane, heading, lap count, charge, waypoint and shift. Reserving, collecting or delivering also saves immediately.
 
 ## Run and build
 
@@ -32,8 +38,8 @@ $p = (Resolve-Path NeonRide.uproject).Path
 
 ## Shared simulation and art
 
-`Source/NeonRide/CircuitCore.*` runs the same 120 Hz simulation natively and as WebAssembly in the browser. The three road PBR maps in SourceArt/Circuit/ decode the browser albedo, normal and roughness images without changing their pixels. Both builds use the same baked `scenery.json` placements. The Unreal copy is staged from `Content/Circuit/`. Positions and dimensions in the manifest are in metres, with Unreal X/Y horizontal, Z up and yaw in radians. Film geometry, material textures, mesh axes and the helmed rider are imported into Unreal units at build time.
+`Source/NeonRide/CircuitCore.*` and `CourierCore.*` run the same 120 Hz riding simulation, street graph and courier rules natively and as WebAssembly in the browser. Both builds share the base `scenery.json` and the district additions and clearances in `courier-scenery.json`. Unreal stages them from `Content/Circuit/`. Positions and dimensions in the manifests are in metres, with Unreal X/Y horizontal, Z up and yaw in radians.
 
-The Unreal road uses a continuous banked mesh, wet asphalt, lane paint, parapets and edge lighting. The rider camera rolls with the bike and the lens widens with speed. Vesper's crash camera tracks her pelvis as the animated character separates from the bike. The production rig is 1.75 m tall with 53 weighted Mixamo joints. The rig samples the crash clip from physical flight and landing. A separate center of mass drives the tumbling motorcycle. The 147 glass midrises use the shared browser placement manifest.
+The five road meshes use wet asphalt, lane paint, parapets and edge lighting, with open junctions and curbside platforms. The rider camera rolls with the bike and the lens widens with speed. Vesper's crash camera tracks her pelvis as the animated character separates from the bike. The production rig is 1.75 m tall with 53 weighted Mixamo joints. A separate center of mass drives the tumbling motorcycle.
 
-Run `Automation RunTests NeonRide.` in a standalone Development game to check lap closure, boost, traffic impacts, automatic recovery, save/restore and the physical instrument display. The visual tour writes cockpit and ejection captures to `Saved/Screenshots/Circuit/`.
+Run `Automation RunTests NeonRide.` in a standalone Development game. The courier test reserves and collects two parcels, uses throttle, brake and steering to deliver to Floodworks, restores the active cargo from a save and verifies cinema ramp access. Captures are written under `Saved/Screenshots/Courier/`, `Circuit/` and `RearMirrors/`.

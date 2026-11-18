@@ -8,6 +8,9 @@ import {OutputPass} from './vendor/postprocessing/OutputPass.js';
 import {practicals} from './practicals.js';
 import {createCrash} from './crash.js';
 import {createTrack} from './track.js';
+import {roadNetwork} from './courier-roads.js';
+import {courierWorld} from './courier-world.js';
+import {districtWaterfronts} from './courier-districts.js';
 import {instruments} from './instruments.js';
 import {rearMirrors} from './mirrors.js';
 import {trafficLighting} from './traffic-lighting.js';
@@ -147,19 +150,25 @@ export async function makeWorld(canvas,circuit,onLoad){
       if(m.material?.map)m.material.map.anisotropy=Math.min(12,renderer.capabilities.getMaxAnisotropy());
       if(m.material && /tower|lamp|sign|crown/.test(key))districtHaze(m.material);
     });
-    onLoad(++loaded,loadList.length+13);
+    onLoad(++loaded,loadList.length+14);
   }
   const jobs=loadList.slice();
   const modelLoaders=Array.from({length:5},async()=>{let key;while((key=jobs.shift()))await fetchModel(key);});
-  const [skies,manifest]=await Promise.all([Promise.all(['skyline-a','skyline-b','deck','asphalt','asphalt-normal','asphalt-rough','word-1','word-2','word-3','word-4','word-5','word-6','facade-tower'].map(async n=>{
-    const tex=await texLoader.loadAsync('./assets/visual/'+n+'.webp');tex.colorSpace=n==='asphalt-normal'||n==='asphalt-rough'?T.NoColorSpace:T.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();onLoad(++loaded,loadList.length+13);return tex;
-  })),fetch('./scenery.json').then(r=>r.json()),...modelLoaders]);
+  const [skies,source,expansion]=await Promise.all([Promise.all(['skyline-a','skyline-b','deck','asphalt','asphalt-normal','asphalt-rough','word-1','word-2','word-3','word-4','word-5','word-6','facade-tower','cover'].map(async n=>{
+    const tex=await texLoader.loadAsync('./assets/visual/'+n+'.webp');tex.colorSpace=n==='asphalt-normal'||n==='asphalt-rough'?T.NoColorSpace:T.SRGBColorSpace;tex.anisotropy=renderer.capabilities.getMaxAnisotropy();onLoad(++loaded,loadList.length+14);return tex;
+  })),fetch('./scenery.json').then(r=>r.json()),fetch('./courier-scenery.json').then(r=>r.json()),...modelLoaders]);
+  const removeItems=new Set(expansion.removedItems),removeInfill=new Set(expansion.removedInfill);
+  const manifest={...source,items:source.items.filter((item,i)=>!removeItems.has(i)).concat(expansion.items),
+    infill:source.infill.filter((item,i)=>!removeInfill.has(i)).concat(expansion.infill)};
   environment(scene,skies);
-  practicals(scene,manifest,skies.slice(6,12),circuit);
+  const network=roadNetwork(circuit);
+  const depots=courierWorld(scene,circuit,network,{cover:skies[13],glyphs:skies.slice(6,12)},loader);
+  const updateWaterfronts=districtWaterfronts(scene,network,expansion.infill,skies.slice(6,12));
+  practicals(scene,manifest,skies.slice(6,12),network);
   cityInfill(scene,manifest.infill,skies[12]);
   lightShafts(scene,manifest.items);
   const localLights=streetLighting(scene,manifest.items);
-  const track=createTrack(scene,circuit,skies.slice(2,6)),refresh=staticScenery(scene,manifest.items,models);
+  const track=createTrack(scene,circuit,skies.slice(2,6),network),refresh=staticScenery(scene,manifest.items,models);
   const vehicleSpill=trafficLighting(track.surface);
   function clone(key,size){
     const asset=models.get(key),group=new T.Group(),copy=asset.obj.clone(true);copy.scale.multiplyScalar(size/asset.length);group.add(copy);return group;
@@ -177,7 +186,7 @@ export async function makeWorld(canvas,circuit,onLoad){
   stopLamp.position.set(-.78,.79,0);bike.add(stopLamp);
   const beam=new T.SpotLight(0xd8e9ff,570,83,.46,.74,1.8);beam.position.set(.88,.87,0);beam.target.position.set(16.5,-.2,0);bike.add(beam,beam.target);
   const crashShot=createCrash(scene,camera,circuit,bike,body,models.get('rider/vesper'),setFrame);
-  const carList=Array.from({length:14},(_,i)=>{
+  const carList=Array.from({length:circuit.trafficCount??14},(_,i)=>{
     const truck=circuit.car(i,0).truck,model=truck?'truck':'cab',root=new T.Group(),hi=clone('detail/'+model,truck?13:4.8),low=clone('models/'+model,truck?13:4.8);
     // The film's traffic noses point along glTF -Z. Route the front along circuit +X.
     hi.rotation.y=low.rotation.y=-Math.PI/2;root.add(hi,low);scene.add(root);
@@ -213,7 +222,7 @@ export async function makeWorld(canvas,circuit,onLoad){
   window.addEventListener('circuit-resolution-change',resize);resize();
   const trafficLights=carList.map(c=>c.light);
   let previousTime=null;
-  function draw(p,look,braking=0){
+  function draw(p,look,braking=0,navigation){
     const f=circuit.frame(p.s,p.lateral),time=p.elapsed,crash=p.crashAge>=0,pose=crash?circuit.crash():null;
     setFrame(bike,f,crash?.1:0,crash?pose.bikeRoll:p.lean*.55);
     crashShot.visible(crash);hands.visible=!crash;
@@ -235,7 +244,7 @@ export async function makeWorld(canvas,circuit,onLoad){
     const fov=crash?43:65+portraitWiden+9*p.v/82+3*p.boost;
     if(Math.abs(fov-camera.fov)>.015){camera.fov=fov;camera.updateProjectionMatrix();}
     refresh({position:camera.position,yaw:viewYaw});
-    localLights(camera.position);
+    localLights(camera.position);depots.update(navigation,time,camera.position);updateWaterfronts(time);
     const deltaT=previousTime===null?0:time-previousTime;previousTime=time;
     carList.forEach((actor,i)=>{
       const {root,hi,low,light,brakeGlow}=actor,car=circuit.car(i,time),cf=circuit.frame(car.s,car.lane);
@@ -256,8 +265,12 @@ export async function makeWorld(canvas,circuit,onLoad){
     rainfall(camera.position,time,p.v);
     let reflectFrame=f;
     if(crash){
-      const separation=T.MathUtils.euclideanModulo(pose.riderS-pose.bikeS+circuit.length*.5,circuit.length)-circuit.length*.5;
-      reflectFrame=circuit.frame(pose.bikeS+separation*.5,(pose.bikeLateral+pose.riderLateral)*.5);
+      const riderRoad=network.roads.find(r=>pose.riderS>=r.start&&pose.riderS<=r.start+r.length);
+      if(riderRoad && pose.bikeS>=riderRoad.start && pose.bikeS<=riderRoad.start+riderRoad.length){
+        let separation=pose.riderS-pose.bikeS;
+        if(riderRoad.id===0)separation=T.MathUtils.euclideanModulo(separation+circuit.length*.5,circuit.length)-circuit.length*.5;
+        reflectFrame=circuit.frame(pose.bikeS+separation*.5,(pose.bikeLateral+pose.riderLateral)*.5);
+      }else reflectFrame=circuit.frame(pose.riderS,pose.riderLateral);
     }
     rearView(f,heading,time,crash);track.reflect(renderer,camera,reflectFrame,time);composer.render();
   }

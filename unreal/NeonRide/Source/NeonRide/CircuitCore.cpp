@@ -1,4 +1,5 @@
 #include "CircuitCore.h"
+#include "CourierCore.h"
 #ifdef __wasm__
 extern "C"
 {
@@ -98,6 +99,7 @@ double Length()
 }
 Frame At(double s, double offset)
 {
+    if (Courier::RoadOf(s)) return Courier::DistrictFrame(s, offset);
     const auto a = Sample(s - 4), b = Sample(s), c = Sample(s + 4);
     const double dx = c.x - a.x, dy = c.y - a.y, n = ROOT(dx * dx + dy * dy);
     const double fx = dx / n, fy = dy / n, ax = b.x - a.x, ay = b.y - a.y, bx = c.x - b.x, by = c.y - b.y;
@@ -118,7 +120,12 @@ Car Traffic(int i, double time)
 {
     const bool truck = i % 4 == 0;
     const double v = truck ? 18.5 : 22. + i % 5;
-    const double start = i == 0 ? 108 : i * Length() / TrafficCount + 71 * (i % 3);
+    if (i >= 14) {
+        const int local = i - 14;
+        const double speed = 12. + local % 4;
+        return {Courier::TrafficPosition(local, 170. + 171. * local + time * speed), local % 2 ? -2.85 : 2.85, speed, truck ? 6.5 : 2.4, truck ? 1.25 : 1.06, truck ? 1. : 0.};
+    }
+    const double start = i == 0 ? 108 : i * Length() / 14 + 71 * (i % 3);
     return {wrap(start + v * time, Length()),
             i % 2 ? -2.85 : 2.85,
             v,
@@ -174,7 +181,8 @@ bool slab(double pos, double delta, double half, double &enter, double &leave)
 bool carContact(double oldS, double oldL, double ds, double dl, const Car &car, double dt, double front, double side,
                 Contact &hit)
 {
-    const double x = signedDistance(oldS - car.s + car.v * dt), y = oldL - car.lane;
+    if (Courier::RoadOf(oldS) != Courier::RoadOf(car.s)) return false;
+    const double x = Courier::DistanceBetween(oldS, car.s) + car.v * dt, y = oldL - car.lane;
     const double dx = ds - car.v * dt, hx = car.half + front, hy = car.width + side;
     double ex = -1.e20, ey = -1.e20, lx = 1.e20, ly = 1.e20;
     if (!slab(x, dx, hx, ex, lx) || !slab(y, dl, hy, ey, ly))
@@ -244,7 +252,7 @@ void advanceBody(CrashBody &b, const Ride &p, bool rider, double dt)
     b.yaw += b.yawRate * dt - rotation;
     b.height += b.upV * dt;
     const double ds = b.forwardV * dt / limit(1. - f.curvature * b.lateral, .75, 1.25), dl = b.sideV * dt;
-    b.s = wrap(oldS + ds, Length());
+    b.s = Courier::Move(oldS, ds, oldL, false, false);
     b.lateral = oldL + dl;
     const double radius = rider ? .32 : .52;
     const double edge = HalfWidth - radius - .12;
@@ -275,7 +283,7 @@ void advanceBody(CrashBody &b, const Ride &p, bool rider, double dt)
             continue;
         const double impulse = -normalV * (rider ? 1.16 : 1.08);
         if (hit.nx)
-            b.s = wrap(car.s + hit.nx * (car.half + radius + .015), Length());
+            b.s = Courier::Move(car.s, hit.nx * (car.half + radius + .015), oldL, false, false);
         if (hit.ny)
             b.lateral = car.lane + hit.ny * (car.width + radius + .015);
         b.forwardV += hit.nx * impulse;
@@ -336,13 +344,13 @@ void recover(Ride &p)
     bool clear = false;
     for (int step = 0; step < 22 && !clear; ++step)
     {
-        s = wrap(p.riderBody.s - 15. * (step / 2), Length());
+        s = Courier::Move(p.riderBody.s, -15. * (step / 2), lane, false, false);
         chosen = step % 2 ? -lane : lane;
         clear = true;
         for (int i = 0; i < TrafficCount; ++i)
         {
             const auto c = Traffic(i, time);
-            const double d = signedDistance(c.s - s);
+            const double d = Courier::DistanceBetween(c.s, s);
             if (chosen * c.lane > 0. && d > -(c.half + 34.) && d < c.half + 16.)
             {
                 clear = false;
@@ -387,7 +395,7 @@ CrashPose Ejection(const Ride &r)
             r.severity,
             clip};
 }
-void Advance(Ride &p, double gas, double brake, double steer, bool request, double dt)
+void Advance(Ride &p, double gas, double brake, double steer, bool request, double dt, bool rampOpen)
 {
     if (dt <= 0.)
         return;
@@ -443,7 +451,7 @@ void Advance(Ride &p, double gas, double brake, double steer, bool request, doub
     const double ds = forward * dt / limit(1. - f.curvature * p.lateral, .75, 1.25);
     const double dl = lateral * dt;
     const double oldS = p.s, oldL = p.lateral;
-    p.s = wrap(oldS + ds, Distance);
+    p.s = Courier::Move(oldS, ds, oldL + dl, true, rampOpen);
     p.lateral = oldL + dl;
     p.sideV = lateral;
     p.headingError = angle(yaw + yawRate * dt - At(p.s).yaw);
@@ -477,7 +485,7 @@ void Advance(Ride &p, double gas, double brake, double steer, bool request, doub
             p.lateral = side * railLimit;
             if (absolute(lateral) > 6.4 && p.v > 14.)
             {
-                p.s = wrap(oldS + ds * railTime, Distance);
+                p.s = Courier::Move(oldS, ds * railTime, oldL, true, rampOpen);
                 launch(p, forward, lateral, 0., -side, 0., absolute(lateral), -side);
                 return;
             }
@@ -491,10 +499,10 @@ void Advance(Ride &p, double gas, double brake, double steer, bool request, doub
     {
         const auto c = Traffic(obstacle, p.elapsed);
         const double closing = -((forward - c.v) * first.nx + lateral * first.ny);
-        p.s = wrap(oldS + ds * when, Distance);
+        p.s = Courier::Move(oldS, ds * when, oldL, true, rampOpen);
         p.lateral = oldL + dl * when;
         if (first.nx)
-            p.s = wrap(c.s + first.nx * (c.half + front + .018), Distance);
+            p.s = Courier::Move(c.s, first.nx * (c.half + front + .018), oldL, false, false);
         if (first.ny)
             p.lateral = c.lane + first.ny * (c.width + sideExtent + .018);
         const double side = first.ny ? first.ny : (p.lateral < c.lane ? -1. : 1.);
@@ -510,7 +518,7 @@ void Advance(Ride &p, double gas, double brake, double steer, bool request, doub
             p.boost = 0.;
         }
     }
-    if (ds > 0. && oldS > Distance * .75 && p.s < Distance * .25)
+    if (Courier::RoadOf(oldS)==0 && Courier::RoadOf(p.s)==0 && ds > 0. && oldS > Distance * .75 && p.s < Distance * .25)
         p.laps++;
     const double target = limit(atan(p.v * yawRate / 9.81), -.91, .91);
     p.lean += (target - p.lean) * (1. - exp(-5. * dt));
@@ -526,6 +534,8 @@ void Advance(Ride &p, double gas, double brake, double steer, bool request, doub
 namespace
 {
 Circuit::Ride Bike;
+Courier::Shift Duty;
+Courier::Route Guidance;
 Circuit::Frame Pose;
 Circuit::Car Vehicle;
 Circuit::CrashPose Eject;
@@ -558,7 +568,30 @@ extern "C"
     }
     void drive(double g, double b, double s, int boost, double dt)
     {
-        Circuit::Advance(Bike, g, b, s, boost != 0, dt);
+        Circuit::Advance(Bike, g, b, s, boost != 0, dt, Courier::RampOpen(Duty));
     }
+    double road_info(int id, int field)
+    {
+        if(field==0)return Courier::RoadStart(id);
+        if(field==1)return Courier::RoadLength(id);
+        if(field==2)return Courier::Entry(id);
+        return Courier::Exit(id);
+    }
+    const char *road_name(int id) {return Courier::RoadName(id);}
+    const char *stop_label(int id,int field)
+    {
+        const auto &v=Courier::Stop(id);return field==0?v.name:field==1?v.client:v.district;
+    }
+    double stop_position(int id){return Courier::Stop(id).s;}
+    const char *job_label(int id){return Courier::Contract(id,Duty.number).parcel;}
+    int job_info(int id,int field){auto j=Courier::Contract(id,Duty.number);return field==0?j.from:field==1?j.to:j.windowSeconds;}
+    Courier::Shift *shift_ptr(){return &Duty;}
+    void shift_reset(){Duty=Courier::NewShift();}
+    void shift_validate(){Courier::Sanitize(Duty);}
+    int shift_accept(int id){return Courier::Accept(Duty,id);}
+    int shift_handoff(int id){return Courier::Handoff(Duty,Bike,id);}
+    int shift_next(){return Courier::NextShift(Duty);}
+    int shift_nearby(){return Courier::Nearby(Bike);}
+    Courier::Route *shift_route(int id){Guidance=Courier::Directions(Bike.s,id,Courier::RampOpen(Duty));return &Guidance;}
 }
 #endif

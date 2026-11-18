@@ -1,0 +1,91 @@
+body[data-screen=game] #route {
+  width:clamp(218px,21vw,302px); padding:10px 12px;gap:5px;
+  background:linear-gradient(90deg,#0b171ae8,#0b171aaf 78%,#0b171a1a);
+  border-left:2px solid #bdedcc;pointer-events:none
+}
+#route .routeHead {gap:8px}#route #area {font-size:clamp(18px,1.8vw,24px)}
+#route .routeFoot {gap:10px;align-items:start;line-height:1.25}
+#route .routeFoot span:first-child {display:inline}
+#route .routeFoot span:last-child {white-space:nowrap;color:#d8e7d1}
+.nav-eyebrow {display:flex;align-items:center;justify-content:space-between;gap:8px}
+#navPhase,#dispatch .dialogTop,#dispatch .dispatch-head>span,#dispatch small {font:600 10px/1.3 Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase}
+#navPhase {color:#c2eccf;font-size:9px}
+#openDesk,#bayAction {pointer-events:auto;cursor:pointer}
+#openDesk {border:0;background:none;color:#f1f4df;font:600 11px Arial;padding:5px 1px}
+#openDesk kbd {font:10px monospace;padding:0 3px;border:1px solid #7e9188;border-radius:2px}
+#bayAction {text-align:left;border:1px solid #b3d5bb;background:#bce3c8;color:#12251d;padding:6px 9px;margin-top:2px;align-self:flex-start;font:700 12px/1.2 Arial}
+#bayAction::after {content:" E";font:11px monospace;color:#365545}
+#dispatch {color:#ecefe3;background:#101d20;width:min(790px,calc(100vw - 32px));max-height:90dvh;overscroll-behavior:contain}
+#dispatch .dialogTop {min-height:41px;background:#152426;color:#b8cfc5}
+.dispatch-head {display:flex;justify-content:space-between;align-items:end;gap:10px;padding:21px 24px 15px}
+#dispatch h2 {font-size:clamp(39px,6vh,61px);margin:0}
+#dispatch .dispatch-head>span {color:#c9e6d2;letter-spacing:.07em;font-size:9px;white-space:nowrap}
+.dispatch-tabs {display:flex;gap:18px;padding:0 24px;border-bottom:1px solid #425652}
+.dispatch-tabs button {font:600 13px Arial;background:none;border:0;border-bottom:2px solid transparent;color:#acbcb5;padding:12px 1px;cursor:pointer}
+.dispatch-tabs button[aria-pressed=true] {color:#d3f1c9;border-bottom-color:#d3f1c9}
+#dispatch [data-page] {padding:18px 24px 20px}
+#dispatch [data-page=map] {display:grid;grid-template-columns:minmax(0,1.28fr) minmax(205px,1fr);gap:19px}
+.map-chart {position:relative;overflow:hidden;border:1px solid #3d5551;background:radial-gradient(ellipse at 40% 60%,#193236,#172728 80%);min-height:300px}
+#cityMap {display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}
+.map-key {position:absolute;bottom:10px;left:12px;color:#cadaCF;background:#132525db;padding:3px 6px;font:10px monospace;pointer-events:none}
+.map-key i {display:inline-block;margin-right:5px;border-left:7px solid #f0f4e8;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.address-list {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#364843;border:1px solid #364843}
+.address-option {display:flex;align-items:center;gap:6px;text-align:left;border:0;padding:8px 7px;background:#142425;color:#bdccc3;font:600 11px/1.28 Arial;cursor:pointer}
+.address-option[aria-pressed=true] {background:#2c4240;color:#fff}
+.address-option i {width:7px;height:7px;flex:none;background:var(--ink);border-radius:50%}
+.address-detail {border-top:1px solid #4b6158;margin-top:16px;padding-top:14px}
+#dispatch small {font-size:9px;color:#a6bdb0}
+#dispatch h3,#dispatch h4 {margin:4px 0;color:#f0f3df}
+.address-detail h3,.shift-result h3 {font:italic 700 31px/1 BarlowC,Arial,sans-serif}
+.address-detail p,.map-route,.job-row p,.shift-result p,.ramp-note,.muted {font:13px/1.45 Arial;margin:4px 0;color:#b9cbc1}
+.map-route {margin:10px 0;color:#d8ece0}
+.courier-action {align-self:center;flex-shrink:0;padding:9px 12px;background:#ccedb7;border:1px solid #ccedb7;color:#14221b;font:700 12px/1.2 Arial;cursor:pointer}
+.courier-action:hover {background:#e2ffc8}
+.text-button {background:transparent;border:0;color:#ccd8ca;padding:8px;font:12px Arial;text-decoration:underline}
+.panniers {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bay-location {display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 10px;padding:0 0 8px;border-bottom:1px solid #43574f}
+.bay-location strong {font:italic 700 22px/1.1 BarlowC,Arial,sans-serif}.bay-location span {font:12px/1.3 Arial;color:#b5cdbd}
+.panniers>div {position:relative;padding:9px 12px 10px 15px;border:1px solid #3c554d;border-left:3px solid #809b8c}
+.panniers strong,.panniers span {display:block}
+.panniers strong {font:600 14px/1.35 Arial;margin:2px 0}
+.panniers span,.job-tag {font:11px/1.35 monospace;color:#b2c8b9}
+#dispatch .ledger-heading {font:italic 700 25px/1.1 BarlowC,Arial,sans-serif;margin:20px 0 3px}
+.job-row,.client-list p {border-bottom:1px solid #344b44;padding:10px 0;display:flex;justify-content:space-between;align-items:center;gap:12px}
+#dispatch .job-row h4 {font:700 16px/1.25 Arial}
+.job-row p {font-size:12px;margin:2px 0}.job-row p span {color:#9bba9f}
+.client-list p {margin:0;font:13px/1.4 Arial}.client-list span {text-align:right;color:#b6cabb;font-size:12px}
+.shift-result {padding-bottom:8px}.ramp-note {margin:13px 0;color:#cddfb8}
+.shift-brief {margin-bottom:15px}.shift-brief h3 {font:italic 700 29px/1 BarlowC,Arial,sans-serif}
+.shift-brief p,.campaign-ending {font:13px/1.5 Arial;margin:5px 0;color:#c8d9cf}
+.campaign-ending {color:#e8e9bb;margin:0 0 14px}
+.radio-note {margin:12px 0;padding:7px 0 7px 12px;border-left:2px solid #9cbea8}
+.radio-note p {margin:4px 0 0;color:#e6ebdc;font:italic 15px/1.4 Georgia,serif}
+#dispatchMessage {margin:0;font:13px/1.4 Arial;color:#def4c7;background:#24372d}
+#dispatchMessage:not(:empty) {position:sticky;bottom:0;padding:10px 24px;border-top:1px solid #415643}
+#dispatch button:focus-visible,#route button:focus-visible {outline:2px solid #f1e79a;outline-offset:-2px}
+@media(pointer:coarse) {
+  body[data-screen=game] #route {top:var(--phone-top);left:var(--phone-left);bottom:auto;width:clamp(185px,38vw,265px);padding:3px 8px 5px;gap:3px}
+  #route .routeFoot {font-size:9px}
+  #openDesk {min-height:35px;padding:7px}#openDesk kbd,#bayAction::after {display:none}
+  #bayAction {min-height:42px;padding:6px 9px}
+  #dispatch button {min-height:44px;touch-action:manipulation}
+}
+@media(max-width:620px) {
+  #dispatch {width:min(100%,490px);max-height:calc(100dvh - 12px)}
+  #dispatch [data-page] {padding:11px 15px 15px}
+  .dispatch-head {padding:13px 15px 8px}.dispatch-tabs {padding:0 15px}
+  #dispatch [data-page=map] {grid-template-columns:1fr;gap:10px}
+  .map-chart {min-height:0;height:clamp(155px,26dvh,260px)}
+  .address-list {grid-template-columns:repeat(3,1fr)}
+  .address-detail {margin-top:8px;padding-top:8px}
+  .address-detail h3 {font-size:25px}.address-detail p,.map-route {font-size:12px;margin:3px 0}
+  .address-detail .courier-action {margin-top:5px}.job-row {gap:7px}
+  .panniers {gap:5px}.panniers>div {padding:7px}.panniers strong {font-size:12px}
+  .courier-action {font-size:11px;padding:7px}
+}
+@media (max-height:500px) and (orientation:landscape) {
+  #dispatch {max-height:96dvh}#dispatch .dialogTop {min-height:34px}
+  .dispatch-head {padding:8px 18px 4px}#dispatch h2 {font-size:32px}
+  .dispatch-tabs button {padding:7px 1px}#dispatch [data-page] {padding:8px 18px 14px}
+  .map-chart {min-height:190px}
+}

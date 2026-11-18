@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "CircuitCore.h"
+#include "CourierCore.h"
 #include "RidePawn.generated.h"
 
 class ASkyway;
@@ -13,6 +14,7 @@ class URideWeather;
 class URideMirrors;
 class URideInstruments;
 class SRideMenu;
+class SCourierDispatch;
 class UNeonRideSave;
 UCLASS()
 class ARidePawn : public APawn
@@ -31,6 +33,18 @@ class ARidePawn : public APawn
     void ClosePauseMenu();
     void ReturnFromMenu();
     void QuitFromMenu();
+    const Courier::Shift& GetShift() const { return Shift; }
+    int TrackedJob() const;
+    int PannierJob(int Side) const { return Panniers[Side]; }
+    int TrackedStop() const;
+    bool ReserveParcel(int Job);
+    bool ServiceParcel(int Job);
+    void TrackParcel(int Job);
+    void MarkAddress(int Address);
+    void FinishShift();
+    void ToggleDispatch();
+    void CloseDispatch();
+    FString CourierNotice() const;
     void CaptureLocation(UNeonRideSave &Save) const;
     bool RestoreLocation(const UNeonRideSave &Save);
 #if WITH_DEV_AUTOMATION_TESTS
@@ -57,6 +71,16 @@ class ARidePawn : public APawn
     UPROPERTY() TArray<TObjectPtr<ATrafficVehicleActor>> Vehicles;
     UPROPERTY() TArray<TObjectPtr<USceneComponent>> Gloves;
     Circuit::Ride Ride = Circuit::Start();
+    Courier::Shift Shift = Courier::NewShift();
+    int Tracked = -1;
+    int Waypoint = -1;
+    int Panniers[2] = {-1,-1};
+    void SyncPanniers();
+    FString Notice;
+    double NoticeUntil = 0.;
+    TSharedPtr<SCourierDispatch> Dispatch;
+    void ServiceStop();
+    void Notify(const FString& Message);
     bool bBoost = false, bSaveEnabled = false, bTitlePending = false;
     double Remainder = 0, Throttle = 0, Brake = 0, Steer = 0;
     float LookYaw = 0, LookPitch = 0;

@@ -14,6 +14,7 @@
 #include "Components/PointLightComponent.h"
 #include "NeonRideSave.h"
 #include "RideMenu.h"
+#include "CourierDispatch.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
@@ -159,6 +160,8 @@ void ARidePawn::BeginPlay()
 }
 void ARidePawn::EndPlay(const EEndPlayReason::Type Reason)
 {
+    if (bSaveEnabled && IsValid(Skyway)) SaveLocation();
+    if (Dispatch.IsValid()) CloseDispatch();
     if (IsValid(Skyway))
         SaveLocation();
     if (Menu.IsValid())
@@ -189,6 +192,8 @@ void ARidePawn::SetupPlayerInputComponent(UInputComponent *Input)
     Input->BindAction("Nitro", IE_Pressed, this, &ARidePawn::BoostPressed);
     Input->BindAction("Nitro", IE_Released, this, &ARidePawn::BoostReleased);
     Input->BindAction("PauseRide", IE_Pressed, this, &ARidePawn::OpenPauseMenu);
+    Input->BindAction("Dispatch", IE_Pressed, this, &ARidePawn::ToggleDispatch);
+    Input->BindAction("Handoff", IE_Pressed, this, &ARidePawn::ServiceStop);
 }
 
 bool ARidePawn::SaveLocation() const
@@ -204,7 +209,7 @@ void ARidePawn::OpenMenu(bool Opening)
 {
     auto *PC = Cast<APlayerController>(Controller);
     auto *View = GetWorld()->GetGameViewport();
-    if (!PC || !View || Menu.IsValid() || !PC->SetPause(true))
+    if (!PC || !View || Menu.IsValid() || Dispatch.IsValid() || !PC->SetPause(true))
         return;
     bBoost = false;
     Weather->SetAudioPaused(true);
@@ -252,7 +257,9 @@ void ARidePawn::QuitFromMenu()
 
 void ARidePawn::RestartRide()
 {
+    const double Clock = Ride.elapsed;
     Ride = Circuit::Start();
+    Ride.elapsed = Clock;
     Mirrors->Invalidate();
     Remainder = 0;
     bBoost = false;
@@ -269,15 +276,45 @@ void ARidePawn::CaptureLocation(UNeonRideSave &Save) const
     Save.Heading = Ride.headingError;
     Save.Charge = Ride.charge;
     Save.Laps = FMath::FloorToInt(Ride.laps);
+    Save.Version = 3;
+    Save.Elapsed = Ride.elapsed;
+    Save.TrackedJob = Tracked;
+    Save.Waypoint = Waypoint;
+    Save.Panniers={Panniers[0],Panniers[1]};
+    Save.ShiftNumber = Shift.number;
+    Save.ShiftsFinished = Shift.finished;
+    Save.ParcelStatus.Reset(); Save.PickupTimes.Reset(); Save.OnTime.Reset(); Save.Visits.Reset();
+    Save.ParcelStatus.Append(Shift.status, Courier::JobCount);
+    Save.PickupTimes.Append(Shift.pickedAt, Courier::JobCount);
+    Save.OnTime.Append(Shift.onTime, Courier::JobCount);
+    Save.Visits.Append(Shift.visits, Courier::AddressCount);
 }
 
 bool ARidePawn::RestoreLocation(const UNeonRideSave &Save)
 {
-    if (!Skyway || Save.Version != 2 || !FMath::IsFinite(Save.Distance) || Save.Distance < 0 ||
-        Save.Distance >= Circuit::Length() || !FMath::IsFinite(Save.Lane) ||
+    if (!Skyway || (Save.Version != 2 && Save.Version != 3) || !FMath::IsFinite(Save.Distance) ||
+        !Courier::ValidPosition(Save.Distance) || !FMath::IsFinite(Save.Lane) ||
         FMath::Abs(Save.Lane) > Circuit::RideLimit || !FMath::IsFinite(Save.Charge) || Save.Charge < 0 ||
         Save.Charge > 1 || Save.Laps < 0 || !FMath::IsFinite(Save.Heading))
         return false;
+    Courier::Shift Restored = Courier::NewShift();
+    if (Save.Version == 3) {
+        if (Save.ParcelStatus.Num()!=Courier::JobCount || Save.Visits.Num()!=Courier::AddressCount ||
+            Save.PickupTimes.Num()!=Courier::JobCount || Save.OnTime.Num()!=Courier::JobCount || !FMath::IsFinite(Save.Elapsed) || Save.Elapsed<0.) return false;
+        Restored.number=Save.ShiftNumber;
+        Restored.finished=Save.ShiftsFinished;
+        for (int I=0; I<Courier::JobCount; ++I) {
+            Restored.status[I]=Save.ParcelStatus[I]; Restored.onTime[I]=Save.OnTime[I]; Restored.pickedAt[I]=Save.PickupTimes[I];
+        }
+        for(int I=0; I<Courier::AddressCount; ++I) Restored.visits[I]=Save.Visits[I];
+        Courier::Sanitize(Restored);
+    }
+    Shift=Restored;
+    for(int Side=0;Side<2;++Side) Panniers[Side]=Save.Panniers.IsValidIndex(Side)?Save.Panniers[Side]:-1;
+    SyncPanniers();
+    Tracked=Save.Version==3 ? Save.TrackedJob : -1;
+    Waypoint=Save.Version==3 && Save.Waypoint>=0 && Save.Waypoint<Courier::AddressCount ? Save.Waypoint : -1;
+    Ride.elapsed=Save.Version==3 ? Save.Elapsed : 0.;
     RestartRide();
     Ride.s = Save.Distance;
     Ride.lateral = Save.Lane;
@@ -309,7 +346,7 @@ void ARidePawn::Tick(float Dt)
     constexpr double Step = 1. / 120.;
     while (Remainder >= Step)
     {
-        Circuit::Advance(Ride, Throttle, Brake, Steer, bBoost, Step);
+        Circuit::Advance(Ride, Throttle, Brake, Steer, bBoost, Step, Courier::RampOpen(Shift));
         Remainder -= Step;
     }
     UpdateTraffic();

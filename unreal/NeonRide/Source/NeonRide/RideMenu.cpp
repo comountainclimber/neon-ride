@@ -56,16 +56,18 @@ void SRideMenu::Construct(const FArguments &Args)
     if (!Opening)
         Actions->AddSlot().AutoHeight().Padding(
             0, 5, 0,
-            0)[Button(TEXT("Restart circuit"), false, FOnClicked::CreateSP(this, &SRideMenu::ReturnToEntrance))];
+            0)[Button(TEXT("Return to Rainline"), false, FOnClicked::CreateSP(this, &SRideMenu::ReturnToEntrance))];
     Actions->AddSlot().AutoHeight().Padding(
         0, 5, 0,
         0)[Button(Opening ? TEXT("Quit") : TEXT("Save and quit"), false, FOnClicked::CreateSP(this, &SRideMenu::Quit))];
 
-    const FString Stage = Opening ? TEXT("MIDNIGHT CIRCUIT") : TEXT("RIDE PAUSED");
+    const FString Stage = Opening ? TEXT("NIGHT COURIER") : TEXT("RIDE PAUSED");
     const FString Keys = TEXT("W / S   or triggers     Throttle / brake\n")
                          TEXT("A / D   or left stick   Steer\n")
                          TEXT("Shift   or X / Square   Nitro\n")
-                         TEXT("Mouse   or right stick  Look");
+                         TEXT("Mouse   or right stick  Look\n")
+                         TEXT("M / Tab or D-pad up    Dispatch map\n")
+                         TEXT("E or bottom face       Parcel handoff");
 
     TSharedRef<SHorizontalBox> Wordmark = SNew(SHorizontalBox);
     Wordmark->AddSlot().AutoWidth()[Label(TEXT("NEON "), Display, Ivory)];
@@ -81,14 +83,14 @@ void SRideMenu::Construct(const FArguments &Args)
     TSharedRef<SVerticalBox> Lockup = SNew(SVerticalBox);
     Lockup->AddSlot().AutoHeight()[Label(Stage,Mono,Acid)];
     Lockup->AddSlot().AutoHeight().Padding(0,-3,0,10)[Wordmark];
-    Lockup->AddSlot().AutoHeight().Padding(0,0,0,19)[Label(TEXT("5.28 KM   /   FOUR DISTRICTS"),Mono,Ivory)];
+    Lockup->AddSlot().AutoHeight().Padding(0,0,0,19)[Label(TEXT("THREE DISTRICTS   /   SIX ADDRESSES"),Mono,Ivory)];
     Lockup->AddSlot().AutoHeight().HAlign(HAlign_Left)[SNew(SBox).WidthOverride(222)[Actions]];
     Lockup->AddSlot().AutoHeight().Padding(0,9,0,0)[Help.ToSharedRef()];
 
     TSharedRef<SOverlay> Layout = SNew(SOverlay);
     Layout->AddSlot().HAlign(HAlign_Left).VAlign(VAlign_Bottom).Padding(70,0,0,75)[Lockup];
     Layout->AddSlot().HAlign(HAlign_Right).VAlign(VAlign_Bottom).Padding(0,0,68,60)
-        [Label(TEXT("VESPER  /  TEST RIDER"),Mono,Ivory)];
+        [Label(TEXT("VESPER  /  NIGHT COURIER"),Mono,Ivory)];
     ChildSlot
     [
         SNew(SOverlay)

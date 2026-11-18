@@ -1,9 +1,9 @@
 import * as T from 'three';
 
-export function practicals(scene,manifest,glyphs,circuit){
+export function practicals(scene,manifest,glyphs,network){
   const pose=new T.Object3D();
   // The flyover carries the film props on maintenance platforms outside its crash barriers.
-  const samples=Array.from({length:Math.ceil(circuit.length/4)},(_,i)=>circuit.frame(i*4));
+  const samples=network.segments.map(segment=>segment.a);
   const verge=manifest.items.filter(([key])=>!key.startsWith('tower'));
   const hardware=new T.MeshStandardMaterial({color:0x35404c,metalness:.62,roughness:.48});
   const geom=new T.BoxGeometry(),plates=new T.InstancedMesh(geom,hardware,verge.length*3);

@@ -22,8 +22,10 @@ jobs:
           python3 unreal/NeonRide/Tools/build_circuit_wasm.py --check
           python3 unreal/NeonRide/Tools/check_rider.py
           cmp web/scenery.json unreal/NeonRide/Content/Circuit/scenery.json
+          cmp web/courier-scenery.json unreal/NeonRide/Content/Circuit/courier-scenery.json
       - name: Compare native and browser driving
         run: |
           project=unreal/NeonRide
-          c++ -O2 -I"$project/Source/NeonRide" "$project/Source/NeonRide/CircuitCore.cpp" "$project/Tools/circuit_probe.cpp" -o /tmp/circuit-probe
+          c++ -O2 -I"$project/Source/NeonRide" "$project/Source/NeonRide/CircuitCore.cpp" "$project/Source/NeonRide/CourierCore.cpp" "$project/Tools/circuit_probe.cpp" -o /tmp/circuit-probe
           node "$project/Tools/compare_circuit.mjs" web/circuit.wasm /tmp/circuit-probe
+          node "$project/Tools/check_courier.mjs" web/circuit.js

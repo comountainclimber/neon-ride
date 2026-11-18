@@ -1,6 +1,12 @@
 #include "Skyway.h"
 #include "CircuitCore.h"
 #include "FilmDistrict.h"
+#include "CourierStreets.h"
+#include "CourierCore.h"
+#include "FilmArt.h"
+#include "RidePawn.h"
+#include "Components/TextRenderComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "ProceduralMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -10,6 +16,11 @@
 
 ASkyway::ASkyway()
 {
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.TickInterval = .055f;
+    static ConstructorHelpers::FObjectFinder<UMaterialInterface> Text(
+        TEXT("/Engine/EngineMaterials/UnlitText.UnlitText"));
+    SignMaterial = Text.Object;
     SetRootComponent(CreateDefaultSubobject<USceneComponent>(TEXT("CircuitOrigin")));
     Asphalt = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ContinuousRoad"));
     Asphalt->SetupAttachment(RootComponent);
@@ -39,67 +50,80 @@ FTransform ASkyway::FrameAt(double S, double Lane) const
 void ASkyway::BeginPlay()
 {
     Super::BeginPlay();
-    auto *Wet = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_CircuitAsphalt.M_CircuitAsphalt"));
-    auto *Neon = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_Neon.M_Neon"));
-    Asphalt->SetMaterial(0, Wet);
-    auto Tint = [](UInstancedStaticMeshComponent *Layer, UMaterialInterface *Base, FLinearColor Color) {
-        if (auto *Material = Layer->CreateDynamicMaterialInstance(0, Base))
-            Material->SetVectorParameterValue(TEXT("Color"), Color);
-    };
-    Tint(Steel, Steel->GetMaterial(0), FLinearColor(.086f, .11f, .145f));
-    Tint(Edge, Neon, FLinearColor(.04f, .65f, .87f));
-    Tint(Reflector, Neon, FLinearColor(.99f, .23f, .04f));
-    const int Sections = FMath::CeilToInt(Circuit::Length() / 4.);
-    const double Step = Circuit::Length() / Sections;
-    TArray<FVector> Vertices, Normals;
-    TArray<FVector2D> UV;
-    TArray<int32> Triangles;
-    TArray<FProcMeshTangent> Tangents;
-    for (int I = 0; I <= Sections; ++I)
+    CourierStreets::Build(*this, *Asphalt, *Steel, *Edge, *Reflector);
+    const TCHAR *Keys[] = {TEXT("night_porter"), TEXT("arcade_clerk"),         TEXT("pump_operator"),
+                           TEXT("canal_keeper"), TEXT("cinema_projectionist"), TEXT("clinic_physician")};
+    for (int I = 0; I < Courier::AddressCount; ++I)
     {
-        const double S = Step * I;
-        for (int Side : {-1, 1})
+        Clients.Add(nullptr);
+        auto At = FrameAt(Courier::Stop(I).s).GetRelativeTransform(GetActorTransform());
+        const auto Plinth = FTransform(FVector(630., 840., 0.)) * At;
+        ClientBases.Add(Plinth);
+        if (auto *Mesh = NeonRide::LoadFilmModel(Keys[I]))
         {
-            const auto Frame = FrameAt(S, Circuit::HalfWidth * Side).GetRelativeTransform(GetActorTransform());
-            Vertices.Add(Frame.GetLocation());
-            Normals.Add(Frame.GetUnitAxis(EAxis::Z));
-            Tangents.Emplace(Frame.GetUnitAxis(EAxis::Y), true);
-            UV.Emplace(Side * Circuit::HalfWidth, S);
-        }
-        if (I < Sections)
-        {
-            int A = I * 2;
-            Triangles.Append({A, A + 1, A + 2, A + 2, A + 1, A + 3});
-        }
-    }
-    Asphalt->CreateMeshSection_LinearColor(0, Vertices, Triangles, Normals, UV, TArray<FLinearColor>(), Tangents,
-                                           false);
-    auto Block = [&](UInstancedStaticMeshComponent *Layer, double S, double Lane, double Elevation,
-                     const FVector &Size) {
-        const auto Base = FrameAt(S, Lane).GetRelativeTransform(GetActorTransform());
-        Layer->AddInstance(FTransform(FQuat::Identity, FVector(0, 0, Elevation * 100), Size) * Base);
-    };
-    // Use one continuous ribbon for the tires; position striping and the parapets from the same sampling frame.
-    for (int I = 0; I < Sections; ++I)
-    {
-        const double S = (I + .5) * Step;
-        Block(Steel, S, 0, -.86, FVector(Step + .08, 13.42, 1.10));
-        for (int Side : {-1, 1})
-        {
-            Block(Steel, S, Side * 6.69, .32, FVector(Step + .08, .28, .70));
-            Block(Edge, S, Side * 6.67, .69, FVector(Step + .045, .19, .045));
-            if (I % 6 == 0)
-                Block(Reflector, S, Side * 6.48, .44, FVector(.52, .07, .14));
-        }
-        if (I % 16 == 0)
-        {
-            const double Height = FrameAt(S).GetLocation().Z / 100. + 68.;
-            const auto Base = FrameAt(S);
-            Steel->AddInstance(FTransform(FRotator(0, Base.Rotator().Yaw, 0),
-                                          Base.GetLocation() - FVector(0, 0, Height * 50 + 95),
-                                          FVector(2.5, 7, Height)),
-                               true);
+            FTransform Local =
+                NeonRide::FilmTransform(Mesh, FVector::ZeroVector, FRotator(0., 50., 0.), I == 2 ? 182. : 173.);
+            Local.AddToTranslation(FVector(0, 0, -Mesh->GetBoundingBox().TransformBy(Local).Min.Z + 1.));
+            Clients[I] = NeonRide::AttachFilmModel(RootComponent, Mesh, Local * Plinth);
         }
     }
     GetWorld()->SpawnActor<AFilmDistrict>(GetActorLocation(), GetActorRotation());
+}
+
+void ASkyway::Acknowledge(int Address)
+{
+    Greeting = Address;
+    GreetingTime = GetWorld()->GetTimeSeconds();
+}
+int ASkyway::StaffCount() const
+{
+    int Count = 0;
+    for (const auto &Person : Clients)
+        if (IsValid(Person.Get()))
+            ++Count;
+    return Count;
+}
+
+void ASkyway::Tick(float Dt)
+{
+    Super::Tick(Dt);
+    const auto *PC = GetWorld()->GetFirstPlayerController();
+    if (!PC || !PC->GetPawn())
+        return;
+    const auto *Rider = Cast<ARidePawn>(PC->GetPawn());
+    const bool Open = Rider && Courier::RampOpen(Rider->GetShift());
+    if (RampSign && Open != bRampOpen)
+    {
+        bRampOpen = Open;
+        RampSign->SetText(FText::FromString(Open ? TEXT("AURORA RAMP   >") : TEXT("AURORA RAMP   /   CLOSED")));
+        RampSign->SetTextRenderColor(Open ? FColor(192, 255, 134) : FColor(255, 170, 93));
+    }
+    const bool Dawn =
+        Rider && (Rider->GetShift().number > 3 || (Rider->GetShift().number == 3 && Rider->GetShift().finished));
+    if (DawnMarquee && bDawnScreening != Dawn)
+    {
+        bDawnScreening = Dawn;
+        DawnMarquee->SetText(
+            FText::FromString(Dawn ? TEXT("NOW SHOWING  /  FIRST LIGHT") : TEXT("MIDNIGHT SCREENING")));
+        DawnMarquee->SetTextRenderColor(Dawn ? FColor(255, 223, 129) : FColor(163, 95, 186));
+    }
+    const FVector Player = GetActorTransform().InverseTransformPosition(PC->GetPawn()->GetActorLocation());
+    const double Time = GetWorld()->GetTimeSeconds();
+    for (int I = 0; I < Clients.Num(); ++I)
+    {
+        auto *Client = Clients[I].Get();
+        if (!Client)
+            continue;
+        const auto &Base = ClientBases[I];
+        const FVector To = Base.InverseTransformPosition(Player);
+        if (To.SizeSquared() > FMath::Square(8500.))
+            continue;
+        const double Yaw = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(To.Y, To.X)), -160., -30.) + 180.;
+        const double Age = Time - GreetingTime;
+        const double Nod = I == Greeting && Age >= 0. && Age < 1.4 ? FMath::Sin(Age * PI / 1.4) * 9. : 0.;
+        auto Local = NeonRide::FilmTransform(Client->GetStaticMesh(), FVector::ZeroVector, FRotator(Nod, Yaw, 0.),
+                                             I == 2 ? 182. : 173.);
+        Local.AddToTranslation(FVector(0, 0, 1. - Client->GetStaticMesh()->GetBoundingBox().TransformBy(Local).Min.Z));
+        Client->SetRelativeTransform(Local * Base);
+    }
 }

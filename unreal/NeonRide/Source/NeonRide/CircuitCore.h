@@ -29,11 +29,11 @@ struct Car
     double s, lane, v, half, width, truck;
 };
 constexpr double HalfWidth = 6.55, RideLimit = 6.12;
-constexpr int TrafficCount = 14;
+constexpr int TrafficCount = 20;
 double Length();
 Frame At(double distance, double lateral = 0);
 Car Traffic(int index, double time);
 Ride Start();
 CrashPose Ejection(const Ride &r);
-void Advance(Ride &r, double gas, double brake, double steer, bool boost, double dt);
+void Advance(Ride &r, double gas, double brake, double steer, bool boost, double dt, bool rampOpen = false);
 } // namespace Circuit

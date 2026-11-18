@@ -1,5 +1,6 @@
 #include "CircuitPracticals.h"
 #include "CircuitCore.h"
+#include "CourierCore.h"
 
 #include "Camera/PlayerCameraManager.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -104,8 +105,9 @@ void UCircuitPracticals::Populate(AActor& District, const TArray<TSharedPtr<FJso
     auto* Brackets = Batch(District,TEXT("OuterVergeBrackets"),Cube,
         Tint(District,Cube->GetMaterial(0),FLinearColor(.12f,.16f,.21f)));
     TArray<Circuit::Frame> RoadSamples;
-    for (double Distance=0.;Distance<Circuit::Length();Distance+=4.)
-        RoadSamples.Add(Circuit::At(Distance));
+    for(int Road=0;Road<Courier::RoadCount;++Road)
+        for(double Along=0.;Along<Courier::RoadLength(Road);Along+=4.)
+            RoadSamples.Add(Circuit::At(Courier::RoadStart(Road)+Along));
     auto Beam=[&](FVector From,FVector To,double WidthCm,double DepthCm)
     {
         const FVector Delta=To-From;
@@ -119,7 +121,8 @@ void UCircuitPracticals::Populate(AActor& District, const TArray<TSharedPtr<FJso
         for(const auto& Sample:RoadSamples)
         {
             const double Dx=Base.X*.01-Sample.x, Dy=Base.Y*.01-Sample.y;
-            const double D2=Dx*Dx+Dy*Dy;
+            const double Dz=Base.Z*.01-Sample.z;
+            const double D2=Dx*Dx+Dy*Dy+Dz*Dz;
             if(D2<Closest){Near=&Sample;Closest=D2;}
         }
         const double Signed=(Base.X*.01-Near->x)*Near->rx+(Base.Y*.01-Near->y)*Near->ry;
