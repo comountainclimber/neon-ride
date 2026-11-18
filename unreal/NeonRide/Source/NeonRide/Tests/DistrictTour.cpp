@@ -27,8 +27,9 @@ class FCircuitTour : public IAutomationLatentCommand
             Test->AddError(TEXT("Lost bike"));
             return true;
         }
-        const TCHAR *Names[] = {TEXT("Rainline"),     TEXT("GlassHeights"), TEXT("VioletReach"), TEXT("CrashEject"),
-                                TEXT("CrashRebound"), TEXT("CrashSlide"), TEXT("RecoverOnFoot"), TEXT("Title"),       TEXT("Paused")};
+        const TCHAR *Names[] = {TEXT("Rainline"),      TEXT("GlassHeights"), TEXT("VioletReach"),
+                                TEXT("CrashEject"),    TEXT("CrashRebound"), TEXT("CrashSlide"),
+                                TEXT("RecoverOnFoot"), TEXT("Title"),        TEXT("Paused")};
         const auto Folder = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("Screenshots/Circuit"));
         const auto Path = Folder / (FString(Names[Shot]) + TEXT(".png"));
         if (!Prepared)
@@ -48,10 +49,12 @@ class FCircuitTour : public IAutomationLatentCommand
                 if (State.crashAge < 0.)
                     Test->AddError(TEXT("Production traffic contact failed to start the crash shot"));
             }
-            if(Shot==6) {
-                State=CircuitImpactAt(.15);
-                for(int I=0;I<900 && State.crashAge>=0.;++I) Circuit::Advance(State,0.,0.,0.,false,1./120.,false,true);
-                Test->TestTrue(TEXT("Crash tour lands on foot beside the parked bike"),State.foot.active!=0.);
+            if (Shot == 6)
+            {
+                State = CircuitImpactAt(.15);
+                for (int I = 0; I < 900 && State.crashAge >= 0.; ++I)
+                    Circuit::Advance(State, 0., 0., 0., false, 1. / 120., false, true);
+                Test->TestTrue(TEXT("Crash tour lands on foot beside the parked bike"), State.foot.active != 0.);
             }
             Bike->SetActorTickEnabled(false);
             Bike->PreviewState(State);

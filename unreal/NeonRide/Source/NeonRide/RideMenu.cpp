@@ -47,13 +47,16 @@ void SRideMenu::Construct(const FArguments &Args)
             .HAlign(HAlign_Left)
             .OnClicked(Click)[Label(Title, Action, Main ? Ink : Ivory)];
     };
-    ResumeButton = Button(Opening ? TEXT("Start ride") : TEXT("Resume ride"), true,
-                          FOnClicked::CreateSP(this, &SRideMenu::Resume));
+    const bool Recovering = Rider.IsValid() && Rider->GetRide().foot.active;
+    ResumeButton = Button(Recovering ? TEXT("Return to recovery")
+                          : Opening  ? TEXT("Start ride")
+                                     : TEXT("Resume ride"),
+                          true, FOnClicked::CreateSP(this, &SRideMenu::Resume));
     TSharedRef<SVerticalBox> Actions = SNew(SVerticalBox);
     Actions->AddSlot().AutoHeight()[ResumeButton.ToSharedRef()];
     Actions->AddSlot().AutoHeight().Padding(
         0, 5, 0, 0)[Button(TEXT("Controls"), false, FOnClicked::CreateSP(this, &SRideMenu::ToggleHelp))];
-    if (!Opening && Rider.IsValid() && !Rider->GetRide().foot.active && Rider->GetRide().crashAge<0.)
+    if (!Opening && Rider.IsValid() && !Rider->GetRide().foot.active && Rider->GetRide().crashAge < 0.)
         Actions->AddSlot().AutoHeight().Padding(
             0, 5, 0,
             0)[Button(TEXT("Return to Rainline"), false, FOnClicked::CreateSP(this, &SRideMenu::ReturnToEntrance))];
@@ -62,25 +65,20 @@ void SRideMenu::Construct(const FArguments &Args)
         0)[Button(Opening ? TEXT("Quit") : TEXT("Save and quit"), false, FOnClicked::CreateSP(this, &SRideMenu::Quit))];
 
     const FString Stage = Opening ? TEXT("NIGHT COURIER") : TEXT("RIDE PAUSED");
-    const FString Keys = TEXT("W / S   or triggers     Throttle / brake\n")
-                         TEXT("A / D   or left stick   Steer\n")
-                         TEXT("Shift   or X / Square   Nitro\n")
-                         TEXT("Mouse   or right stick  Look\n")
-                         TEXT("M / Tab or D-pad up    Dispatch map\n")
-                         TEXT("E or bottom face       Handoff / remount\n")
-                         TEXT("WASD or left stick     Walk after a crash");
+    const FString Keys = TEXT("W / S   or triggers     Throttle / brake\n") TEXT("A / D   or left stick   Steer\n")
+        TEXT("Shift   or X / Square   Nitro\n") TEXT("Mouse   or right stick  Look\n")
+            TEXT("M / Tab or D-pad up    Dispatch map\n") TEXT("E or bottom face       Handoff / remount\n")
+                TEXT("WASD or left stick     Walk after a crash");
 
     TSharedRef<SHorizontalBox> Wordmark = SNew(SHorizontalBox);
     Wordmark->AddSlot().AutoWidth()[Label(TEXT("NEON "), Display, Ivory)];
     Wordmark->AddSlot().AutoWidth()[Label(TEXT("RIDE"), Display, Acid)];
 
-    SAssignNew(Help,SBox).Visibility(EVisibility::Collapsed)
-    [
-        SNew(SBorder)
-        .BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
-        .BorderBackgroundColor(FLinearColor(.013f,.032f,.04f,.94f))
-        .Padding(14)[Label(Keys,Mono,Ivory)]
-    ];
+    SAssignNew(Help, SBox)
+        .Visibility(EVisibility::Collapsed)[SNew(SBorder)
+                                                .BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+                                                .BorderBackgroundColor(FLinearColor(.013f, .032f, .04f, .94f))
+                                                .Padding(14)[Label(Keys, Mono, Ivory)]];
     TSharedRef<SVerticalBox> Lockup = SNew(SVerticalBox);
     Lockup->AddSlot().AutoHeight()[Label(Stage,Mono,Acid)];
     Lockup->AddSlot().AutoHeight().Padding(0,-3,0,10)[Wordmark];

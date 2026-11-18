@@ -33,9 +33,15 @@ class ARidePawn : public APawn
     void ClosePauseMenu();
     void ReturnFromMenu();
     void QuitFromMenu();
-    const Courier::Shift& GetShift() const { return Shift; }
+    const Courier::Shift &GetShift() const
+    {
+        return Shift;
+    }
     int TrackedJob() const;
-    int PannierJob(int Side) const { return Panniers[Side]; }
+    int PannierJob(int Side) const
+    {
+        return Panniers[Side];
+    }
     int TrackedStop() const;
     bool ReserveParcel(int Job);
     bool ServiceParcel(int Job);
@@ -49,7 +55,10 @@ class ARidePawn : public APawn
     void CaptureLocation(UNeonRideSave &Save) const;
     bool RestoreLocation(const UNeonRideSave &Save);
 #if WITH_DEV_AUTOMATION_TESTS
-    void PreviewMenu(bool Opening) { OpenMenu(Opening); }
+    void PreviewMenu(bool Opening)
+    {
+        OpenMenu(Opening);
+    }
     void PreviewState(const Circuit::Ride &State)
     {
         Ride = State;
@@ -75,17 +84,20 @@ class ARidePawn : public APawn
     Courier::Shift Shift = Courier::NewShift();
     int Tracked = -1;
     int Waypoint = -1;
-    int Panniers[2] = {-1,-1};
+    int Panniers[2] = {-1, -1};
     void SyncPanniers();
     FString Notice;
     double NoticeUntil = 0.;
     TSharedPtr<SCourierDispatch> Dispatch;
     void ServiceStop();
-    void Notify(const FString& Message);
+    void Notify(const FString &Message);
     bool bBoost = false, bSaveEnabled = false, bTitlePending = false;
     double Remainder = 0, Throttle = 0, Brake = 0, Steer = 0;
-    double FootForward=0., FootYawDelta=0.;
-    void SetFootForward(float Value) { FootForward=FMath::Clamp(Value,-1.f,1.f); }
+    double FootForward = 0., FootYawDelta = 0.;
+    void SetFootForward(float Value)
+    {
+        FootForward = FMath::Clamp(Value, -1.f, 1.f);
+    }
     float LookYaw = 0, LookPitch = 0;
     FVector2D LookStick = FVector2D::ZeroVector;
     TSharedPtr<SRideMenu> Menu;
