@@ -1,0 +1,14 @@
+Neon Ride motorcycle audio
+
+engine-idle.wav, engine-drive.wav and engine-redline.wav
+Adapted from "Engines - Startup, Idle & Rev" by dklon.
+https://opengameart.org/content/engines-startup-idle-rev
+Original recordings and these three edited loops are licensed under Creative Commons Attribution-ShareAlike 3.0 Unported.
+https://creativecommons.org/licenses/by-sa/3.0/
+Changes by Neon Ride: extracted idle and loaded revs, aligned and crossfaded engine cycles, filtered the exhaust, shaped its dynamics and exported loops for real-time pitch and load mixing.
+Download the edited WAVs from https://neon-ride-orpin.vercel.app/assets/audio/ using the filenames above.
+
+engine-nitro.wav
+Adapted from spaceEngineSmall_002 by Kenney, Sci-Fi Sounds (CC0), with an added turbine harmonic and air layer.
+https://kenney.nl/assets/sci-fi-sounds
+https://creativecommons.org/publicdomain/zero/1.0/

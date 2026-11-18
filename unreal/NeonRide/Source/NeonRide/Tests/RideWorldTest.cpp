@@ -1,6 +1,7 @@
 #include "RidePawn.h"
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Skyway.h"
+#include "CircuitImpactFixture.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "RideInstruments.h"
 #include "NeonRideSave.h"
@@ -42,6 +43,7 @@ bool FNeonRideWorld::RunTest(const FString &)
     State.lateral = -3.;
     State.charge = .42;
     State.laps = 2;
+    State.headingError = -.18;
     Bike->PreviewState(State);
     if (Mat)
         TestTrue(TEXT("Physical nitro gauge follows reservoir"),
@@ -51,19 +53,19 @@ bool FNeonRideWorld::RunTest(const FString &)
     Bike->PreviewState(Circuit::Start());
     TestTrue(TEXT("Can reload circuit save at rest"), Bike->RestoreLocation(*Save));
     TestTrue(TEXT("Reload preserves position and charge"),
-             Bike->GetRide().s == 1450. && Bike->GetRide().charge == .42 && Bike->GetRide().v == 0);
+             Bike->GetRide().s == 1450. && Bike->GetRide().charge == .42 && Bike->GetRide().v == 0 &&
+                 FMath::Abs(Bike->GetRide().headingError + .18) < .0001);
     Save->Lane = 100;
     TestFalse(TEXT("Invalid save rejected"), Bike->RestoreLocation(*Save));
-    State.crashAge = .46;
-    State.crashStart = State.s;
-    State.crashSpeed = 58;
-    State.crashSide = 1;
+    State = CircuitImpactAt(.48);
+    TestTrue(TEXT("Real traffic contact drives the exterior"), State.crashAge >= 0.);
     Bike->PreviewState(State);
     auto *Rig = Bike->FindComponentByClass<USkeletalMeshComponent>();
     if (TestNotNull(TEXT("Cooked Tripo character rig"), Rig))
     {
         TestTrue(TEXT("Exterior character is visible"), Rig->IsVisible());
-        TestTrue(TEXT("Animation follows shared crash clock"), FMath::IsNearlyEqual(Rig->GetPosition(), .46f, .002f));
+        TestTrue(TEXT("Animation follows shared crash clock"),
+                 FMath::IsNearlyEqual(Rig->GetPosition(), float(Circuit::Ejection(State).clipTime), .002f));
     }
     Bike->PreviewState(Circuit::Start());
     return true;

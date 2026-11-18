@@ -6,6 +6,7 @@
 class UInstancedStaticMeshComponent;
 class UStaticMeshComponent;
 class FJsonObject;
+class FJsonValue;
 struct FFilmFlight
 {
     FName Key;
@@ -28,6 +29,7 @@ private:
     UPROPERTY() TObjectPtr<UStaticMeshComponent> Jelly;
     FVector JellyOrigin = FVector::ZeroVector;
     double JellyAmplitude = 0, JellyRate = 0;
+    void PopulateMidrises(const TArray<TSharedPtr<FJsonValue>>& Rows);
     void LoadAirspace(const TSharedPtr<FJsonObject>& Airspace);
     void AddModel(const TCHAR* Key,const FVector& PositionCm,const FRotator& Rotation,double SizeCm);
     void PositionAircraft(double Time);

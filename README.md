@@ -2,11 +2,14 @@
 
 ## Play the driving game
 
-Ride the 5.28 km elevated circuit in the browser or in Unreal Engine 5.8.4 on Windows. W/S accelerate and brake, A/D steer, and Shift fires the rechargeable nitro tank. The cockpit gauge shows the remaining charge. Traffic runs around the same loop. Closing on another vehicle too quickly ejects the rider before the bike resets in a clear lane.
+Ride the 5.28 km elevated circuit in the browser or in Unreal Engine 5.8.4 on Windows. W/S accelerate and brake, A/D turn the bike, and Shift fires the rechargeable nitro tank. Centering the steering holds the current heading, including on bends. The cockpit gauge shows the remaining charge.
+
+Traffic and guardrails respond to the angle and closing speed of contact. A scrape costs speed. A hard impact separates Vesper from the bike, and each carries its own momentum into the landing, bounce and slide. The bike resets at rest in a traffic gap after the crash.
 
 - [Play on Vercel](https://neon-ride-orpin.vercel.app) · [Browser source and assets](web/) · [Unreal project and build instructions](unreal/NeonRide/)
 - To run locally, serve `web/` with `python -m http.server 8000 --directory web`, then open `http://localhost:8000`.
 - GitHub deploys the `web/` directory to the linked Vercel project on updates to `main`.
+- The four-layer motorcycle mix uses real motorcycle recordings by dklon and a Kenney turbine layer. [Audio credits and licenses](web/assets/audio/engine-credits.txt)
 
 Both editions use the C++ simulation in `unreal/NeonRide/Source/NeonRide/CircuitCore.cpp`. With Zig 0.14.1 on PATH, run `python unreal/NeonRide/Tools/build_circuit_wasm.py` after changing it. Run the same command with `--check` to verify the packaged module. The scenery manifest in `web/scenery.json` also ships with the Unreal project.
 

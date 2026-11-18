@@ -6,6 +6,17 @@ import unreal as ue
 def build_road(import_file, make, wire, named_input, output):
     source = Path(ue.Paths.convert_relative_path_to_full(ue.Paths.project_dir())) / "SourceArt" / "Circuit"
     assets = ue.get_editor_subsystem(ue.EditorAssetSubsystem)
+    import_file(source / "impact.wav", "A_Impact")
+    for stem, asset_name in (("idle", "Idle"), ("drive", "Drive"), ("redline", "Redline"), ("nitro", "Nitro")):
+        layer = import_file(source / f"engine-{stem}.wav", "A_Engine" + asset_name)
+        layer.set_editor_property("looping", True)
+        layer.set_editor_property("virtualization_mode", ue.VirtualizationMode.PLAY_WHEN_SILENT)
+        assets.save_loaded_asset(layer, False)
+    cover = import_file(source / "vesper-cover.jpg", "T_VesperCover")
+    cover.set_editor_property("lod_group", ue.TextureGroup.TEXTUREGROUP_UI)
+    cover.set_editor_property("never_stream", True)
+    cover.set_editor_property("compression_settings", ue.TextureCompressionSettings.TC_EDITOR_ICON)
+    assets.save_loaded_asset(cover, True)
     maps = [import_file(source / (key + ".png"), name) for key, name in
             (("asphalt", "T_CircuitAsphalt"), ("asphalt-normal", "T_CircuitNormal"), ("asphalt-rough", "T_CircuitRough"))]
     maps[1].set_editor_property("compression_settings", ue.TextureCompressionSettings.TC_NORMALMAP)
@@ -55,3 +66,32 @@ return clamp(.17+Moisture*.44+.09*puddles,.11,.56);""")
         metal = node(ue.MaterialExpressionConstant, 0, 530, r=.16)
         output(metal, ue.MaterialProperty.MP_METALLIC)
     make("M_CircuitAsphalt", asphalt)
+
+    def midrise(mat, node):
+        mat.set_editor_property("used_with_instanced_static_meshes", True)
+        world = node(ue.MaterialExpressionWorldPosition, -650, 0)
+        normal = node(ue.MaterialExpressionPixelNormalWS, -650, 180)
+        glass = node(ue.MaterialExpressionConstant3Vector, 0, -260, constant=ue.LinearColor(.033, .048, .066, 1.))
+        output(glass, ue.MaterialProperty.MP_BASE_COLOR)
+        rough = node(ue.MaterialExpressionConstant, 0, -140, r=.31)
+        output(rough, ue.MaterialProperty.MP_ROUGHNESS)
+        metal = node(ue.MaterialExpressionConstant, 0, -60, r=.56)
+        output(metal, ue.MaterialProperty.MP_METALLIC)
+        glow = node(ue.MaterialExpressionCustom, -200, 80, inputs=[named_input("P"),named_input("N")],
+                    output_type=ue.CustomMaterialOutputType.CMOT_FLOAT3, code="""
+float2 along=float2(-N.y,N.x);
+float2 uv=float2(dot(P.xy,along)/180.,P.z/315.);
+float2 grid=floor(uv), local=frac(uv);
+float2 aa=min(.15,.5*fwidth(uv)+.006);
+float2 frame=smoothstep(float2(.12,.19)-aa,float2(.12,.19)+aa,min(local,1.-local));
+float fade=1.-smoothstep(.12,.50,max(fwidth(uv.x),fwidth(uv.y)));
+float office=frac(sin(dot(float2(floor(grid.x/3.),grid.y),float2(73.1,117.3)))*15473.51);
+float noise=frac(sin(dot(grid,float2(11.7,47.5)))*19517.37);
+float value=lerp(.02,.29+.56*noise,step(.64,office+.12*noise));
+float3 tint=lerp(float3(.25,.50,.59),float3(.95,.62,.33),step(.8,office));
+return tint*lerp(.082,frame.x*frame.y*value,fade)*saturate(1.-abs(N.z));""")
+        wire(world, glow, "P")
+        wire(normal, glow, "N")
+        output(glow, ue.MaterialProperty.MP_EMISSIVE_COLOR)
+    make("M_CircuitInfill", midrise)
+

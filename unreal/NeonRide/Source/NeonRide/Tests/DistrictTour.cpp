@@ -1,4 +1,5 @@
 #include "RidePawn.h"
+#include "CircuitImpactFixture.h"
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
@@ -26,7 +27,8 @@ class FCircuitTour : public IAutomationLatentCommand
             Test->AddError(TEXT("Lost bike"));
             return true;
         }
-        const TCHAR *Names[] = {TEXT("Rainline"), TEXT("GlassHeights"), TEXT("VioletReach"), TEXT("CrashEject")};
+        const TCHAR *Names[] = {TEXT("Rainline"),     TEXT("GlassHeights"), TEXT("VioletReach"), TEXT("CrashEject"),
+                                TEXT("CrashRebound"), TEXT("CrashSlide"),   TEXT("Title"),       TEXT("Paused")};
         const auto Folder = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("Screenshots/Circuit"));
         const auto Path = Folder / (FString(Names[Shot]) + TEXT(".png"));
         if (!Prepared)
@@ -34,20 +36,22 @@ class FCircuitTour : public IAutomationLatentCommand
             IFileManager::Get().MakeDirectory(*Folder, true);
             Previous = IFileManager::Get().GetTimeStamp(*Path);
             auto State = Circuit::Start();
-            State.s = Shot == 0 ? 0. : Shot == 1 ? 1110. : Shot == 2 ? 2670. : 1450.;
+            State.s = Shot == 0 ? 0. : Shot == 1 ? 1570. : Shot == 2 ? 2670. : 1450.;
             State.charge = Shot == 0 ? 1. : .45;
             State.boost = Shot == 1;
             State.v = Shot == 0 ? 0 : 45;
             State.elapsed = Shot == 0 ? 0 : 30;
-            if (Shot == 3)
+            if (Shot >= 3 && Shot < 6)
             {
-                State.crashAge = .46;
-                State.crashStart = State.s - 6;
-                State.crashSpeed = 58;
-                State.crashSide = 1;
+                const double Phase[] = {.48, 1.32, 2.3};
+                State = CircuitImpactAt(Phase[Shot - 3]);
+                if (State.crashAge < 0.)
+                    Test->AddError(TEXT("Production traffic contact failed to start the crash shot"));
             }
             Bike->SetActorTickEnabled(false);
             Bike->PreviewState(State);
+            if (Shot >= 6)
+                Bike->PreviewMenu(Shot == 6);
             Prepared = true;
             Start = FPlatformTime::Seconds();
             return false;
@@ -56,7 +60,7 @@ class FCircuitTour : public IAutomationLatentCommand
         {
             if (FPlatformTime::Seconds() - Start < 4.)
                 return false;
-            FScreenshotRequest::RequestScreenshot(Path, false, false);
+            FScreenshotRequest::RequestScreenshot(Path, Shot >= 6, false);
             Requested = true;
             Start = FPlatformTime::Seconds();
             return false;
@@ -66,7 +70,9 @@ class FCircuitTour : public IAutomationLatentCommand
         if (IFileManager::Get().FileSize(*Path) <= 0 || IFileManager::Get().GetTimeStamp(*Path) <= Previous)
             Test->AddError(TEXT("Missing fresh circuit screenshot ") + Path);
         Prepared = Requested = false;
-        if (++Shot < 4)
+        if (Shot >= 6)
+            Bike->ClosePauseMenu();
+        if (++Shot < 8)
             return false;
         Bike->PreviewState(Circuit::Start());
         Bike->SetActorTickEnabled(true);

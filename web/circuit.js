@@ -1,6 +1,6 @@
-const rideKeys = 's lateral v sideV lean steer charge boost locked cool laps gear rpm impact elapsed crashAge crashSpeed crashSide crashStart'.split(' ');
+const rideKeys = 's lateral v sideV lean steer charge boost locked cool laps gear rpm impact elapsed crashAge crashSpeed crashSide crashStart headingError severity firstLanding'.split(' ');
 const frameKeys = 'x z h fx fz rx rz yaw grade bank curvature'.split(' ');
-const crashKeys = 'riderS riderLateral riderHeight riderPitch riderRoll riderYaw bikeRoll cameraDistance cameraHeight'.split(' ');
+const crashKeys = 'riderS riderLateral riderHeight riderPitch riderRoll riderYaw bikeRoll cameraDistance cameraHeight bikeS bikeLateral bikeHeight bikePitch bikeYaw riderGround bikeGround riderHit bikeHit riderSpeed bikeSpeed severity clipTime'.split(' ');
 
 export async function loadCircuit(bytes) {
   if (!bytes) {
@@ -26,7 +26,7 @@ export async function loadCircuit(bytes) {
       wasm.reset_ride();
       if (!data || !Number.isFinite(data.s) || data.s<0 || data.s>=length) return;
       const values = new Float64Array(wasm.memory.buffer,ptr,rideKeys.length);
-      for (const [index,lo,hi] of [[0,0,length],[1,-5.53,5.53],[6,0,1],[10,0,1e9],[14,0,1e10]]) {
+      for (const [index,lo,hi] of [[0,0,length],[1,-6.12,6.12],[6,0,1],[10,0,1e9],[14,0,1e10],[19,-Math.PI,Math.PI]]) {
         const v=data[rideKeys[index]];
         if (Number.isFinite(v)) values[index]=Math.min(hi,Math.max(lo,v));
       }

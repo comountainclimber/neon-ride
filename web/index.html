@@ -2,15 +2,34 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b0c16"><title>Neon Ride — Midnight Circuit</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%230d141d'/%3E%3Cpath d='M5 29l9-18h6l-9 18zm10 0l9-18h6l-9 18zm10 0l9-18h4l-9 18z' fill='%23a1ffdc'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./circuit.css"><script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script></head>
-<body data-screen="title"><canvas id="world" aria-label="Three-dimensional motorcycle cockpit on the Midnight Circuit" tabindex="0"></canvas><div id="cover" aria-hidden="true"></div>
+<body data-screen="title">
+<canvas id="world" aria-label="Three-dimensional motorcycle cockpit on the Midnight Circuit" tabindex="0"></canvas>
+<div id="cover" aria-hidden="true"><div class="film-frame"></div><img class="vesper-portrait" src="./assets/visual/vesper-title.webp" alt="" fetchpriority="high"><div class="film-shade"></div></div>
 <header><a id="brand" href="#" aria-label="Neon Ride menu"><i class="mark" aria-hidden="true"><b></b><b></b><b></b></i><span>NEON RIDE</span></a>
 <div class="actions"><button id="sound" aria-label="Turn sound off" title="Sound" aria-pressed="true">♪ <span>Sound on</span></button><button id="fullscreen" title="Fullscreen" aria-label="Enter fullscreen">⛶</button><button id="pauser" class="playOnly" aria-label="Pause game">Ⅱ</button></div></header>
-<main id="intro"><div class="location"><i></i> MIDNIGHT CIRCUIT</div><h1>NEON<br><em>RIDE</em></h1>
-<p>A 5.28 km skyway above the city.<br>Ride the loop at your own pace.</p>
-<button id="enter" class="primary" disabled>Loading circuit <span id="progress">0%</span></button><button id="how" class="subtle">Controls</button><div id="error" role="alert"></div></main>
+<main id="intro">
+  <div class="title-lockup"><p class="overline"><i></i>Midnight Circuit</p><h1>NEON <em>RIDE</em></h1>
+  <p class="route-summary">5.28 km <span>/</span> Four districts <span>/</span> One continuous loop</p>
+  <div class="title-actions"><button id="enter" class="primary" disabled>Loading circuit <span id="progress">0%</span></button><button id="how" class="quiet">Controls <i aria-hidden="true">↗</i></button></div>
+  <div id="error" role="alert"></div></div>
+  <div class="rider-credit"><i aria-hidden="true"></i><div><strong>Vesper</strong><span>Test rider</span></div></div>
+</main>
 <aside id="route" class="playOnly" aria-label="Circuit progress"><div class="routeHead"><span id="area">Rainline</span><span id="distance">0.00 km</span></div><div class="routeLine"><i id="meter"></i></div><div class="routeFoot"><span>Midnight Circuit</span><span id="lap">Lap 01</span></div></aside>
 <div id="notice" role="status"></div><output id="telemetry" class="sr"></output>
 <div id="touch" class="playOnly"><div><button data-key="KeyA" aria-label="Steer left">←</button><button data-key="KeyD" aria-label="Steer right">→</button></div><div><button data-key="ShiftLeft" aria-label="Nitro boost">N₂O</button><button data-key="KeyS" aria-label="Brake">−</button><button data-key="KeyW" aria-label="Throttle">+</button></div></div>
-<dialog id="menu"><div class="dialogTop"><span>MIDNIGHT CIRCUIT</span><button data-close aria-label="Close">×</button></div><h2>Paused</h2><button class="primary" id="resume">Resume ride <b>→</b></button><button id="menuHelp">Controls</button><button id="menuTitle">Save &amp; return to title</button></dialog>
-<dialog id="help"><div class="dialogTop"><span>MIDNIGHT CIRCUIT</span><button data-close aria-label="Close">×</button></div><h2>Controls</h2><dl><div><dt>Throttle / brake</dt><dd>W / S or ↑ / ↓</dd></div><div><dt>Steer</dt><dd>A / D or ← / →</dd></div><div><dt>Nitro boost</dt><dd>Hold Shift</dd></div><div><dt>Look around</dt><dd>Drag the scene</dd></div><div><dt>Face forward</dt><dd>C</dd></div><div><dt>Return to circuit start</dt><dd>R</dd></div><div><dt>Pause</dt><dd>Esc / P</dd></div></dl><p>Release nitro to recharge. On a controller, steer with the left stick and look with the right. Click the right stick to recenter. The triggers brake and accelerate. Hold X / Square for nitro, press Y / Triangle to restart, and press View / Create to pause.</p></dialog>
+<dialog id="menu" aria-labelledby="pause-title">
+  <div class="dialogTop"><span>Midnight Circuit</span><button data-close aria-label="Close pause menu">×</button></div>
+  <div class="pause-art" aria-hidden="true"></div>
+  <div class="dialog-content"><h2 id="pause-title">Paused.</h2><button class="primary" id="resume">Resume ride <b aria-hidden="true">→</b></button><button id="menuHelp" class="menu-row">Controls <b aria-hidden="true">↗</b></button><button id="menuTitle" class="menu-row">Save &amp; return to title <b aria-hidden="true">↗</b></button></div>
+</dialog>
+<dialog id="help" aria-labelledby="controls-title">
+  <div class="dialogTop"><span>Midnight Circuit</span><button data-close aria-label="Close controls">×</button></div>
+  <div class="dialog-content"><h2 id="controls-title">Controls.</h2>
+  <div class="control-picker" aria-label="Control scheme"><button aria-pressed="true" data-scheme="keys">Keyboard</button><button aria-pressed="false" data-scheme="pad">Controller</button><button aria-pressed="false" data-scheme="touch">Touch</button></div>
+  <dl data-layout="keys"><div><dt>Throttle / brake</dt><dd>W / S <small>or</small> ↑ / ↓</dd></div><div><dt>Steer left / right</dt><dd>A / D <small>or</small> ← / →</dd></div><div><dt>Nitro boost</dt><dd>Hold Shift</dd></div><div><dt>Look around</dt><dd>Drag</dd></div><div><dt>Face forward</dt><dd>C</dd></div><div><dt>Restart circuit</dt><dd>R</dd></div><div><dt>Pause</dt><dd>Esc / P</dd></div></dl>
+  <dl data-layout="pad" hidden><div><dt>Throttle / brake</dt><dd>RT / LT</dd></div><div><dt>Steer / look</dt><dd>Left / right stick</dd></div><div><dt>Face forward</dt><dd>Click right stick</dd></div><div><dt>Nitro boost</dt><dd>X / Square</dd></div><div><dt>Restart circuit</dt><dd>Y / Triangle</dd></div><div><dt>Pause</dt><dd>Menu / View</dd></div></dl>
+  <dl data-layout="touch" hidden><div><dt>Throttle / brake</dt><dd>+ / −</dd></div><div><dt>Steer left / right</dt><dd>← / →</dd></div><div><dt>Nitro boost</dt><dd>Hold N₂O</dd></div><div><dt>Look around</dt><dd>Drag the scene</dd></div><div><dt>Pause</dt><dd>Ⅱ</dd></div></dl>
+  <p class="control-note">Release nitro to recharge the cockpit gauge. <a href="./assets/audio/engine-credits.txt" target="_blank" rel="noopener" style="color:inherit">Engine sound credits</a></p></div>
+</dialog>
+<script type="module" src="./menu.js"></script>
 <script type="module" src="./game.js"></script></body></html>

@@ -1,34 +1,35 @@
 import * as T from 'three';
 
 export function instruments(bike){
-  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=252;
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=224;
   const ctx=canvas.getContext('2d'),texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;
   texture.anisotropy=8;
-  const panel=new T.Group();panel.position.set(.70,1.136,0);panel.rotation.set(-.57,-Math.PI/2,0,'YXZ');bike.add(panel);
-  const frame=new T.Mesh(new T.BoxGeometry(.509,.185,.014),new T.MeshStandardMaterial({color:0x111b20,metalness:.57,roughness:.28}));panel.add(frame);
-  const screen=new T.Mesh(new T.PlaneGeometry(.483,.158),new T.MeshBasicMaterial({map:texture,toneMapped:false}));screen.position.z=.009;panel.add(screen);
+  const panel=new T.Group();panel.position.set(.74,1.101,0);panel.rotation.set(-.57,-Math.PI/2,0,'YXZ');bike.add(panel);
+  const rim=new T.Shape(),w=.164,h=.059,b=.009;
+  rim.moveTo(-w+b,-h);rim.lineTo(w-b,-h);rim.lineTo(w,-h+b);rim.lineTo(w,h-b);
+  rim.lineTo(w-b,h);rim.lineTo(-w+b,h);rim.lineTo(-w,h-b);rim.lineTo(-w,-h+b);rim.closePath();
+  const casing=new T.Mesh(new T.ExtrudeGeometry(rim,{depth:.007,bevelEnabled:true,bevelSize:.002,bevelThickness:.002,bevelSegments:2}),
+    new T.MeshStandardMaterial({color:0x182228,roughness:.36,metalness:.66}));panel.add(casing);
+  const screen=new T.Mesh(new T.PlaneGeometry(.304,.102),new T.MeshBasicMaterial({map:texture,toneMapped:false}));screen.position.z=.010;panel.add(screen);
+  const screwGeo=new T.CylinderGeometry(.0028,.0028,.0015,8),screwMat=new T.MeshStandardMaterial({color:0x67737a,metalness:.83,roughness:.3});
+  for(const side of [-1,1]){const screw=new T.Mesh(screwGeo,screwMat);screw.position.set(side*.158,0,.009);screw.rotation.x=Math.PI*.5;panel.add(screw);}
   let prev='';
   return {update(p){
-    const speed=Math.round(3.6*p.v),charge=Math.round(p.charge*100),rpm=Math.round(p.rpm*20);
-    const status=p.boost?'DISCHARGE':p.charge>=.995?'READY':p.cool>0?'COOLING':'CHARGING';
-    const next=[speed,charge,rpm,p.gear,status].join('/');
-    if(next===prev)return;prev=next;
-    ctx.fillStyle='#07131a';ctx.fillRect(0,0,768,252);
-    ctx.strokeStyle='#37525b';ctx.lineWidth=3;ctx.strokeRect(3,3,762,246);
-    ctx.fillStyle='#87c0bd';ctx.font='bold 23px monospace';ctx.fillText('NR  /  TELEMETRY',22,38);
-    for(let i=0;i<20;i++){
-      ctx.fillStyle=i>=rpm?'#20353b':i>16?'#ffae6f':'#82ead2';
-      ctx.fillRect(23+i*23,56,17,12);
+    const speed=Math.round(3.6*p.v),charge=Math.round(p.charge*100),rpm=Math.round(p.rpm*18);
+    const next=[speed,charge,rpm,p.gear,p.boost].join('/');if(next===prev)return;prev=next;
+    const tint=p.boost?'#ffc281':'#98f2db';
+    ctx.fillStyle='#061319';ctx.fillRect(0,0,640,224);
+    for(let i=0;i<18;i++){
+      ctx.fillStyle=i<rpm?(i>14?'#ffb287':'#70bfb2'):'#233239';ctx.fillRect(15+i*34,13,26,9);
     }
-    ctx.fillStyle='#e8fff4';ctx.font='bold 102px monospace';ctx.fillText(String(speed).padStart(3,'0'),20,159);
-    ctx.fillStyle='#80b9b8';ctx.font='bold 23px monospace';ctx.fillText('KM/H',213,152);
-    ctx.font='bold 26px monospace';ctx.fillText('GEAR',361,109);
-    ctx.fillStyle='#e1fff0';ctx.font='bold 53px monospace';ctx.fillText(String(p.gear),370,160);
-    ctx.fillStyle='#263d45';ctx.fillRect(495,20,3,146);
-    ctx.fillStyle=p.boost?'#ffb56d':'#91eed3';ctx.font='bold 25px monospace';ctx.fillText('NITRO',522,49);
-    ctx.font='bold 67px monospace';ctx.fillText(charge+'%',516,121);
-    ctx.fillStyle='#8bb5b1';ctx.font='bold 20px monospace';ctx.fillText(status,525,154);
-    for(let i=0;i<32;i++){ctx.fillStyle=i<Math.ceil(p.charge*32)?(p.boost?'#ffad67':'#7ff1cc'):'#273f45';ctx.fillRect(22+i*22.75,189,18.5,38);}
+    ctx.fillStyle='#e4fff4';ctx.font='bold 108px monospace';ctx.fillText(String(speed).padStart(3,'0'),12,136);
+    ctx.fillStyle='#88b5b1';ctx.font='bold 23px monospace';ctx.fillText('KM/H',26,170);
+    ctx.fillStyle='#45626a';ctx.fillRect(250,44,2,111);ctx.fillRect(382,44,2,111);
+    ctx.font='bold 22px monospace';ctx.fillStyle='#8cb7b6';ctx.fillText('GEAR',273,70);
+    ctx.fillStyle='#dcf9e9';ctx.font='bold 64px monospace';ctx.fillText(String(p.gear),279,139);
+    ctx.font='bold 25px monospace';ctx.fillStyle=tint;ctx.fillText('NITRO',401,70);
+    ctx.font='bold 64px monospace';ctx.fillText(charge+'%',399,138);
+    for(let i=0;i<16;i++){ctx.fillStyle=i<Math.ceil(p.charge*16)?tint:'#25363a';ctx.fillRect(15+i*38.3,184,31,23);}
     texture.needsUpdate=true;
   }};
 }

@@ -1,24 +1,29 @@
 import {loadCircuit} from './circuit.js';
 import {makeWorld,sector} from './world.js';
+import {MotorcycleSound} from './engine-sound.js';
 
 const element=id=>document.getElementById(id),canvas=element('world');
 const storage='neon-ride.circuit.v1',keys=new Set(),touchKeys=new Map(),look={yaw:0,pitch:0};
 let circuit,world,active=false,began=false,back=null,drag=null,lastTime=0,accumulator=0,lastSave=0;
 let sound=true,saved=null,toastTimer,controllerMenu=false,lastCrash=false,lastLap=0,padReset=false;
 try{saved=JSON.parse(localStorage.getItem(storage));sound=localStorage.getItem(storage+'.sound')!=='off';}catch{}
-const tracks=['rain','wind_woosh_loop','engineCircular_000'].map(name=>{
+const engineSound=new MotorcycleSound();
+const tracks=['rain','wind_woosh_loop'].map(name=>{
   const a=new Audio('./assets/audio/'+name+'.wav');a.loop=true;a.preload='auto';a.preservesPitch=false;return a;
 });
+const impactSound=new Audio('./assets/audio/impact.wav');impactSound.preload='auto';impactSound.preservesPitch=false;
 function audioState(){
+  engineSound.enable(active&&sound);
+  if(!active||!sound)impactSound.pause();
   element('sound').innerHTML='♪ <span>Sound '+(sound?'on':'off')+'</span>';
   element('sound').setAttribute('aria-label','Turn sound '+(sound?'off':'on'));
   element('sound').setAttribute('aria-pressed',String(sound));
-  tracks.forEach((a,i)=>{if(active&&sound){a.volume=[.17,.025,.13][i];a.play().catch(()=>{});}else a.pause();});
+  tracks.forEach((a,i)=>{if(active&&sound){a.volume=[.17,.025][i];a.play().catch(()=>{});}else a.pause();});
 }
 function save(){
   if(!began||!circuit)return;
   const p=circuit.ride();if(p.crashAge>=0)return;
-  saved={s:p.s,lateral:p.lateral,laps:p.laps,charge:p.charge,elapsed:p.elapsed};
+  saved={s:p.s,lateral:p.lateral,laps:p.laps,charge:p.charge,elapsed:p.elapsed,headingError:p.headingError||0};
   try{localStorage.setItem(storage,JSON.stringify(saved));}catch{}
 }
 function notify(text){clearTimeout(toastTimer);element('notice').textContent=text;toastTimer=setTimeout(()=>element('notice').textContent='',2200);}
@@ -88,9 +93,17 @@ function hud(p){
   const speed=Math.round(p.v*3.6),charge=Math.round(p.charge*100);
   const stats=element('telemetry');stats.value=speed+' km/h · Gear '+p.gear+' · Nitro '+charge+'%';
   stats.dataset.speed=speed;stats.dataset.charge=charge;stats.dataset.crash=String(p.crashAge>=0);stats.dataset.boost=String(Boolean(p.boost));
-  if(p.crashAge>=0&&!lastCrash)notify('Impact');if(p.crashAge<0&&lastCrash)notify('Bike recovered');
+  if(p.crashAge>=0&&!lastCrash){
+    notify('Impact');
+    if(sound){
+      const severity=Math.max(0,Math.min(1,p.severity));
+      impactSound.volume=.38+.44*severity;impactSound.playbackRate=1.13-.21*severity;impactSound.currentTime=0;
+      impactSound.play().catch(()=>{});
+    }
+  }
+  if(p.crashAge<0&&lastCrash)notify('Bike recovered');
   if(p.laps>lastLap)notify('Lap '+(p.laps+1));lastLap=p.laps;lastCrash=p.crashAge>=0;
-  if(sound){tracks[1].volume=.025+.28*Math.min(1,p.v/82)+.1*p.boost;tracks[2].playbackRate=.68+.91*p.rpm;tracks[2].volume=.10+.12*p.rpm;}
+  if(sound)tracks[1].volume=.025+.28*Math.min(1,p.v/82)+.1*p.boost;
 }
 function update(now){
   requestAnimationFrame(update);
@@ -112,7 +125,7 @@ function update(now){
   }
   const controls=input(pad);
   while(accumulator>=1/120){circuit.drive(...controls,1/120);accumulator-=1/120;}
-  const p=circuit.ride();hud(p);world.draw(p,look);
+  const p=circuit.ride();hud(p);engineSound.update(p,controls[0],controls[1]);world.draw(p,look,controls[1]);
   if(now-lastSave>4000){lastSave=now;save();}
 }
 async function start(){

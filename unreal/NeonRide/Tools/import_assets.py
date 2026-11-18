@@ -1,5 +1,6 @@
 """Unreal editor entry point shared by first launch and unattended builds."""
 import os
+import shutil
 from pathlib import Path
 import sys
 import unreal as ue
@@ -17,6 +18,9 @@ def import_all():
     original = project.parent.parent
     models = local / "Models" if (local / "Models").is_dir() else original / "models"
     art = local if (local / "textures").is_dir() else original
+    credits = project / "Content" / "Credits"
+    credits.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(local / "Circuit" / "engine-credits.txt", credits / "engine-credits.txt")
     import_models(Path(os.getenv("NEON_RIDE_MODELS", str(models))))
     build_environment(Path(os.getenv("NEON_RIDE_ART", str(art))))
     import_rider(local / "Rider")

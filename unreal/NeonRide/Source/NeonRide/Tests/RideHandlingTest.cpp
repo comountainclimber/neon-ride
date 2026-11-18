@@ -33,8 +33,36 @@ bool FNeonRideHandling::RunTest(const FString &)
     Step(0, 0, 0, false, 50);
     const auto Pose = Circuit::Ejection(State);
     TestTrue(TEXT("Rider launches above the deck"), Pose.riderHeight > 1.35);
-    Step(0, 0, 0, false, 390);
+    TestTrue(TEXT("Bike and rider have separate rotations"),
+             FMath::Abs(Pose.riderRoll - Pose.bikeRoll) + FMath::Abs(Pose.riderPitch - Pose.bikePitch) > .3);
+    bool BikeLanded = false, RiderLanded = false;
+    for (int I = 0; I < 830 && State.crashAge >= 0.; ++I)
+    {
+        auto Crash = Circuit::Ejection(State);
+        BikeLanded |= Crash.bikeGround > .5;
+        RiderLanded |= Crash.riderGround > .5;
+        Step(0, 0, 0, false, 1);
+    }
+    TestTrue(TEXT("Both crash bodies physically contact the deck"), BikeLanded && RiderLanded);
     TestTrue(TEXT("Crash recovers to cockpit"), State.crashAge < 0.);
+    auto Steering = Circuit::Start();
+    Steering.s = 85.;
+    Steering.lateral = 0.;
+    Steering.v = 32.;
+    const double OriginalYaw = Circuit::At(Steering.s).yaw;
+    for (int I = 0; I < 42; ++I)
+        Circuit::Advance(Steering, .30, 0., 1., false, 1. / 120.);
+    TestTrue(TEXT("Steering changes world heading"),
+             Circuit::At(Steering.s).yaw + Steering.headingError > OriginalYaw + .025);
+    auto Unsteered = Circuit::Start();
+    Unsteered.s = 1050.;
+    Unsteered.lateral = 0.;
+    Unsteered.v = 28.;
+    const double WorldYaw = Circuit::At(Unsteered.s).yaw;
+    for (int I = 0; I < 35; ++I)
+        Circuit::Advance(Unsteered, 0., 0., 0., false, 1. / 120.);
+    TestTrue(TEXT("Neutral steering carries world heading across a bend"),
+             FMath::Abs(Circuit::At(Unsteered.s).yaw + Unsteered.headingError - WorldYaw) < .001);
     return true;
 }
 #endif

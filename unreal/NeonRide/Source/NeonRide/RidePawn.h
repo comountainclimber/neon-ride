@@ -7,6 +7,7 @@
 class ASkyway;
 class UCameraComponent;
 class UPointLightComponent;
+class UInstancedStaticMeshComponent;
 class ATrafficVehicleActor;
 class URideWeather;
 class URideInstruments;
@@ -32,6 +33,7 @@ class ARidePawn : public APawn
     void CaptureLocation(UNeonRideSave &Save) const;
     bool RestoreLocation(const UNeonRideSave &Save);
 #if WITH_DEV_AUTOMATION_TESTS
+    void PreviewMenu(bool Opening) { OpenMenu(Opening); }
     void PreviewState(const Circuit::Ride &State)
     {
         Ride = State;
@@ -46,13 +48,14 @@ class ARidePawn : public APawn
     UPROPERTY() TObjectPtr<USceneComponent> Ejected;
     UPROPERTY() TObjectPtr<USkeletalMeshComponent> CrashMesh;
     UPROPERTY() TObjectPtr<UPointLightComponent> CrashFill;
+    UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> ContactSparks;
     UPROPERTY() TObjectPtr<UCameraComponent> Camera;
     UPROPERTY() TObjectPtr<URideWeather> Weather;
     UPROPERTY() TObjectPtr<URideInstruments> Instruments;
     UPROPERTY() TArray<TObjectPtr<ATrafficVehicleActor>> Vehicles;
     UPROPERTY() TArray<TObjectPtr<USceneComponent>> Gloves;
     Circuit::Ride Ride = Circuit::Start();
-    bool bBoost = false, bSaveEnabled = false;
+    bool bBoost = false, bSaveEnabled = false, bTitlePending = false;
     double Remainder = 0, Throttle = 0, Brake = 0, Steer = 0;
     float LookYaw = 0, LookPitch = 0;
     FVector2D LookStick = FVector2D::ZeroVector;
@@ -98,10 +101,12 @@ class ARidePawn : public APawn
         LookYaw = LookPitch = 0;
     }
     void RestartRide();
-    void OpenPauseMenu();
+    void OpenPauseMenu() { OpenMenu(false); }
+    void OpenMenu(bool Opening);
     bool SaveLocation() const;
     void UpdatePose();
     void UpdateTraffic();
     void InstrumentsUpdate();
     void BuildCrashRider();
+    void UpdateCrashEffects(const Circuit::CrashPose &Pose, const FTransform &Deck);
 };

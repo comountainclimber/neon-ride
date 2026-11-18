@@ -87,7 +87,31 @@ const airspace = {
   origin:[100,-560], aspect:.77, aircraft,
   jelly:{position:[760,-1090,106],size:25,amplitude:1.4,rate:.45}
 };
-const output = JSON.stringify({version:2, units:'m', items, minimumClearance, airspace}) + '\n';
+// Midrises use the film tower silhouettes as exclusion volumes. Every office footprint
+// is checked against the entire closed road, including the return side of a bend.
+const infill = [];
+const towerRadius = {'tower-a':.217, 'tower-b':.194, 'tower-c':.224};
+const occupied = items.filter(([name]) => name in towerRadius)
+  .map(([name,x,y,,size]) => [x, y, size*towerRadius[name]]);
+function officeNoise(i) {
+  const n = Math.sin(i*73.291 + 2.51) * 47393.27;
+  return n - Math.floor(n);
+}
+for (let s = 16, i = 0; s < length; i++, s += 30 + 21*officeNoise(i+1)) {
+  for (let j = 0; j < 4; j++) {
+    const id = 8*i+j+1, side = j%2 ? 1 : -1, near = j<2;
+    const offset = near ? 32 + officeNoise(id*14+4)*48 : 98 + officeNoise(id*42+6)*112;
+    const [x,y,roadZ,,,,,yaw] = frame(s + (near ? 0 : 18), side*offset);
+    const width = 12 + officeNoise(id*9+2)*21, depth = 11 + officeNoise(id*10+3)*16;
+    const radius = Math.hypot(width,depth)/2;
+    if (clearance(x,y)-radius < 7.05 || occupied.some(([ox,oy,or])=>Math.hypot(x-ox,y-oy)<radius+or+2)) continue;
+    const base = -95, height = roadZ-base+(near?6:28)+(near?55:96)*officeNoise(id*81+113);
+    infill.push([x,y,base,width,depth,height,yaw,id,Math.round(officeNoise(id*21+99)*3)]
+      .map(v=>Math.round(v*1000)/1000));
+    occupied.push([x,y,radius]);
+  }
+}
+const output = JSON.stringify({version:2, units:'m', items, minimumClearance, airspace, infill}) + '\n';
 for (const path of [join(project, 'Content/Circuit/scenery.json'), join(web, 'scenery.json')])
   writeFileSync(path, output);
 console.log(`${items.length} objects, minimum road clearance ${minimumClearance.toFixed(2)} m`);

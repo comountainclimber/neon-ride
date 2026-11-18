@@ -12,7 +12,7 @@ URideInstruments::URideInstruments()
     SetCollisionEnabled(ECollisionEnabled::NoCollision);
     SetCastShadow(false);
     const auto Orientation = FRotationMatrix::MakeFromXY(FVector::YAxisVector, FVector(-.574, 0, -.819)).ToQuat();
-    SetRelativeTransform(FTransform(Orientation, FVector(74, 0, 112.55), FVector(.38, .126, 1)));
+    SetRelativeTransform(FTransform(Orientation, FVector(78, 0, 109.05), FVector(.2432, .08064, 1)));
 }
 
 void URideInstruments::StartDisplay()

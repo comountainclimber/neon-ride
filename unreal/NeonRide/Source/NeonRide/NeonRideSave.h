@@ -10,6 +10,7 @@ class UNeonRideSave : public USaveGame
     UPROPERTY(SaveGame) int32 Version = 2;
     UPROPERTY(SaveGame) double Distance = 0;
     UPROPERTY(SaveGame) double Lane = 0;
+    UPROPERTY(SaveGame) double Heading = 0;
     UPROPERTY(SaveGame) double Charge = 1;
     UPROPERTY(SaveGame) int32 Laps = 0;
 };
