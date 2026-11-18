@@ -24,6 +24,9 @@ ASkyway::ASkyway()
     Rails = Layer(TEXT("Rails"));
     Supports = Layer(TEXT("Supports"));
     Floor = Layer(TEXT("CityDatum"));
+    Buildings = Layer(TEXT("TerraceBlocks"));
+    MarketColour = Layer(TEXT("MarketCanopies"));
+    TransitColour = Layer(TEXT("TransitAndOverlook"));
     Deck->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
@@ -67,6 +70,9 @@ void ASkyway::OnConstruction(const FTransform& Transform)
     Prepare(Rails, FLinearColor(0.48f, 0.53f, 0.58f));
     Prepare(Supports, FLinearColor(0.30f, 0.36f, 0.42f));
     Prepare(Floor, FLinearColor(0.17f, 0.20f, 0.24f));
+    Prepare(Buildings, FLinearColor(0.24f, 0.31f, 0.40f));
+    Prepare(MarketColour, FLinearColor(0.94f, 0.38f, 0.10f));
+    Prepare(TransitColour, FLinearColor(0.08f, 0.61f, 0.65f));
 
     // Cube mesh is one metre across. Transforms below use metre dimensions and cm positions.
     auto Box = [](UInstancedStaticMeshComponent* Layer, const FTransform& Frame, FVector OffsetCm, FVector SizeM)
@@ -84,7 +90,8 @@ void ASkyway::OnConstruction(const FTransform& Transform)
         for (int Side : {-1, 1})
         {
             Box(Markings, Frame, FVector(0, Side * 462, 1), FVector(5.03, 0.09, 0.02));
-            Box(Rails, Frame, FVector(0, Side * 495, 85), FVector(5.10, 0.10, 0.10));
+            if (!(Side == -1 && S >= 165 && S < 195) && S < 1070)
+                Box(Rails, Frame, FVector(0, Side * 495, 85), FVector(5.10, 0.10, 0.10));
         }
     }
     for (int S = 0; S < int(NeonRide::TrackLength); S += S < 372 ? 26 : 16)
@@ -93,8 +100,48 @@ void ASkyway::OnConstruction(const FTransform& Transform)
         const double Height = S < 372 ? 1.1 : 4.2;
         for (int Side : {-1, 1})
         {
+            if ((Side == -1 && S > 165 && S < 195) || S > 1070) continue;
             Box(Supports, Frame, FVector(0, Side * 495, Height * 50), FVector(0.18, 0.18, Height));
         }
     }
     Box(Floor, FrameAt(0), FVector(0, 0, -16050), FVector(3500, 3500, 1));
+    auto CityBox = [&](UInstancedStaticMeshComponent* Layer, double X, double Y, double Z, FVector Size)
+    {
+        Box(Layer, GetActorTransform(), FVector(X, Y, Z) * 100.0, Size);
+    };
+    for (size_t I = size_t(NeonRide::TrackLength / Step); I < District.Surfaces().size(); ++I)
+    {
+        const auto& S = District.Surfaces()[I];
+        const FVector A(S.A.X, S.A.Y, S.A.Z), B(S.B.X, S.B.Y, S.B.Z);
+        const FVector Delta = B - A;
+        FTransform Frame(Delta.Rotation(), (A + B) * 50.0);
+        Frame = Frame * GetActorTransform();
+        Box(Deck, Frame, FVector(0, 0, -25), FVector(Delta.Size() + 0.1, S.Width, 0.50));
+        if (!S.bRoad) continue;
+        for (int Side : {-1, 1})
+            Box(Markings, Frame, FVector(0, Side * (S.Width * 50 - 35), 1.5), FVector(Delta.Size(), 0.18, 0.03));
+    }
+    for (const auto& B : District.Buildings())
+    {
+        const double Base = NeonRide::FDistrict::TerraceZ;
+        CityBox(Buildings, B.X, B.Y, Base + B.Height / 2, FVector(B.WidthX, B.WidthY, B.Height));
+        auto* Trim = B.X < 320 && B.X > 55 ? MarketColour.Get() : TransitColour.Get();
+        CityBox(Trim, B.X, B.Y, Base + B.Height - 1.0, FVector(B.WidthX + 0.6, B.WidthY + 0.6, 0.70));
+        if (B.X > 55 && B.X < 320)
+        {
+            CityBox(Trim, B.X, B.Y + B.WidthY / 2 + 0.8, Base + 4, FVector(B.WidthX, 2.4, 0.4));
+        }
+    }
+    // Silhouettes identify the three junctions from across the district.
+    for (int Side : {-1, 1})
+    {
+        CityBox(MarketColour, 180 + Side * 10, -13, 5.0, FVector(0.7, 0.8, 10));
+        CityBox(TransitColour, -65 + Side * 10, -12, 6.0, FVector(0.8, 0.8, 12));
+        CityBox(TransitColour, 637, -548 + Side * 14, 13.0, FVector(2.0, 2.0, 26));
+    }
+    CityBox(MarketColour, 180, -13, 10, FVector(20.7, 0.8, 0.6));
+    CityBox(TransitColour, -65, -12, 12, FVector(20.8, 0.8, 0.6));
+    CityBox(TransitColour, 637, -548, 26, FVector(2.0, 30, 1));
+    for (int X = -120; X < 735; X += 12)
+        CityBox(Markings, X, -556, NeonRide::FDistrict::TerraceZ + 0.02, FVector(4, 0.16, 0.04));
 }

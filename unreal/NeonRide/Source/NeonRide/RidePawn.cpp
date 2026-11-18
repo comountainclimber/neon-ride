@@ -1,5 +1,6 @@
 #include "RidePawn.h"
 #include "Skyway.h"
+#include "TrafficVehicleActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -46,7 +47,25 @@ void ARidePawn::BeginPlay()
     {
         Skyway = GetWorld()->SpawnActor<ASkyway>();
     }
+    for (const auto& Spec : StreetTraffic.Vehicles)
+    {
+        auto* Vehicle = GetWorld()->SpawnActor<ATrafficVehicleActor>();
+        Vehicles.Add(Vehicle);
+        if (Vehicle) Vehicle->Configure(Spec.Truck);
+    }
     RestartRide();
+}
+
+void ARidePawn::EndPlay(const EEndPlayReason::Type Reason)
+{
+    if (Reason == EEndPlayReason::Destroyed)
+    {
+        for (ATrafficVehicleActor* Vehicle : Vehicles)
+        {
+            if (IsValid(Vehicle)) Vehicle->Destroy();
+        }
+    }
+    Super::EndPlay(Reason);
 }
 
 void ARidePawn::SetupPlayerInputComponent(UInputComponent* Input)
@@ -56,50 +75,84 @@ void ARidePawn::SetupPlayerInputComponent(UInputComponent* Input)
     Input->BindAxis("Brake", this, &ARidePawn::SetBrake);
     Input->BindAxis("Steer", this, &ARidePawn::SetSteer);
     Input->BindAction("RestartRide", IE_Pressed, this, &ARidePawn::RestartRide);
+    Input->BindAction("DistrictMap", IE_Pressed, this, &ARidePawn::ToggleMap);
+    Input->BindAxis("LookX", this, &ARidePawn::LookX);
+    Input->BindAxis("LookY", this, &ARidePawn::LookY);
+    Input->BindAxis("LookStickX", this, &ARidePawn::LookStickX);
+    Input->BindAxis("LookStickY", this, &ARidePawn::LookStickY);
+    Input->BindAction("LookAhead", IE_Pressed, this, &ARidePawn::LookAhead);
 }
 
 void ARidePawn::SetThrottle(float Value) { Throttle = FMath::Clamp(Value, 0.f, 1.f); }
 void ARidePawn::SetBrake(float Value) { Brake = FMath::Clamp(Value, 0.f, 1.f); }
 void ARidePawn::SetSteer(float Value) { Steer = FMath::Clamp(Value, -1.f, 1.f); }
+void ARidePawn::LookX(float Delta) { LookYaw = FMath::Clamp(LookYaw + Delta * 1.5f, -145.f, 145.f); }
+void ARidePawn::LookY(float Delta) { LookPitch = FMath::Clamp(LookPitch + Delta * 1.5f, -60.f, 70.f); }
 
 void ARidePawn::RestartRide()
 {
     Ride = NeonRide::FRideState();
+    LookAhead();
+    StreetTraffic = NeonRide::FStreetTraffic();
+    if (Skyway) StreetTraffic.Advance(Skyway->GetDistrict(), Ride, 0.0);
     Remainder = 0.0;
     UpdatePose();
+    UpdateTraffic();
 }
 
 void ARidePawn::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    if (!Skyway) return;
     constexpr double Step = 1.0 / 120.0;
+    LookYaw = FMath::Clamp(LookYaw + float(LookStick.X) * DeltaSeconds * 105.f, -145.f, 145.f);
+    LookPitch = FMath::Clamp(LookPitch + float(LookStick.Y) * DeltaSeconds * 80.f, -60.f, 70.f);
     Remainder += FMath::Min(double(DeltaSeconds), 0.25);
-    while (Remainder >= Step && Ride.Distance < NeonRide::TrackLength)
+    while (Remainder >= Step)
     {
-        Ride.Advance(Step, Throttle, Brake, Steer);
+        const NeonRide::FPoint Previous = Ride.Position;
+        const double PreviousOdometer = Ride.Odometer;
+        StreetTraffic.Advance(Skyway->GetDistrict(), Ride, Step);
+        Ride.Advance(Skyway->GetDistrict(), Step, Throttle, Brake, Steer);
+        // A vehicle contact sheds speed and leaves the rider in the same district.
+        if (StreetTraffic.Touches(Ride.Position) && !StreetTraffic.Touches(Previous))
+        {
+            Ride.Position = Previous;
+            Ride.Odometer = PreviousOdometer;
+            Ride.Speed = 0.0;
+        }
         Remainder -= Step;
     }
-    if (Ride.Distance >= NeonRide::TrackLength)
-    {
-        RestartRide();
-        return;
-    }
     UpdatePose();
+    UpdateTraffic();
+}
+
+void ARidePawn::UpdateTraffic()
+{
+    if (!Skyway) return;
+    for (int I = 0; I < Vehicles.Num(); ++I)
+    {
+        auto* Vehicle = Vehicles[I].Get();
+        if (!Vehicle) continue;
+        const auto& Pose = StreetTraffic.Vehicles[I].Pose;
+        const FTransform Local(FRotator(Pose.Pitch, Pose.Yaw, Pose.Bank), FVector(Pose.Point.X, Pose.Point.Y, Pose.Point.Z) * 100);
+        const FTransform World = Local * Skyway->GetActorTransform();
+        Vehicle->SetActorLocationAndRotation(World.GetLocation(), World.GetRotation());
+    }
 }
 
 void ARidePawn::UpdatePose()
 {
     if (!Skyway) return;
-    const FTransform Frame = Skyway->FrameAt(Ride.Distance);
-    const FVector Position = Frame.TransformPosition(FVector(0, Ride.Offset * 100.0, 0));
-    const double SlipYaw = FMath::RadiansToDegrees(FMath::Atan2(Ride.SideSpeed, FMath::Max(0.01, Ride.Speed)));
-    SetActorLocationAndRotation(Position, FRotator(0, Frame.Rotator().Yaw + SlipYaw, 0));
+    const FTransform Frame = Skyway->GetActorTransform();
+    const FVector Position = Frame.TransformPosition(FVector(Ride.Position.X, Ride.Position.Y, Ride.Position.Z) * 100.0);
+    SetActorLocationAndRotation(Position, Frame.GetRotation() * FRotator(0, FMath::RadiansToDegrees(Ride.Heading), 0).Quaternion());
 
     Body->SetRelativeRotation(FRotator(0, 0, Ride.Roll));
     const double RollRadians = FMath::DegreesToRadians(Ride.Roll);
     Camera->SetRelativeLocation(FVector(-1.4 * Ride.Acceleration, 52.0 * FMath::Sin(RollRadians),
         142.0 - 0.4 * Ride.Acceleration - 18.0 * (1.0 - FMath::Cos(RollRadians))));
-    Camera->SetRelativeRotation(FRotator(-12.0 + 0.28 * Ride.Acceleration, 0.22 * Ride.Roll, 0.42 * Ride.Roll));
+    Camera->SetRelativeRotation(FRotator(-12.0 + LookPitch + 0.28 * Ride.Acceleration, LookYaw + 0.22 * Ride.Roll, 0.42 * Ride.Roll));
     const double LensMm = 17.0 - 3.0 * NeonRide::SmoothUnit((Ride.Speed - 36.0) / 22.0);
     Camera->SetFieldOfView(2.0 * FMath::RadiansToDegrees(FMath::Atan(18.0 / LensMm)));
 }
