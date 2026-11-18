@@ -8,6 +8,7 @@
 #include "Animation/AnimSequence.h"
 #include "Engine/SkeletalMesh.h"
 #include "RideWeather.h"
+#include "RideMirrors.h"
 #include "RideInstruments.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/PointLightComponent.h"
@@ -55,6 +56,8 @@ ARidePawn::ARidePawn()
     CrashFill->SetVisibility(false);
     Weather = CreateDefaultSubobject<URideWeather>(TEXT("RideWeather"));
     Weather->SetupAttachment(RootComponent);
+    Mirrors = CreateDefaultSubobject<URideMirrors>(TEXT("RearCapture"));
+    Mirrors->SetupAttachment(RootComponent);
     Instruments = CreateDefaultSubobject<URideInstruments>(TEXT("InstrumentCluster"));
     Instruments->SetupAttachment(Body);
     auto *Headlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("DipBeam"));
@@ -107,8 +110,9 @@ void ARidePawn::BeginPlay()
         for (auto *Guide : Guides)
             if (Guide->IsA<UStaticMeshComponent>() && Guide != Instruments)
                 Guide->SetVisibility(false);
-        NeonRide::AttachFilmModel(Body, Bike,
+        auto *FilmBike=NeonRide::AttachFilmModel(Body, Bike,
                                   NeonRide::FilmTransform(Bike, FVector(25.32, 0, 0), FRotator(0, 180, 0), 210.7));
+        Mirrors->Initialize(Body,FilmBike);
         if (auto *Glove = NeonRide::LoadFilmModel(TEXT("glove")))
         {
             for (int Side : {-1, 1})
@@ -249,12 +253,13 @@ void ARidePawn::QuitFromMenu()
 void ARidePawn::RestartRide()
 {
     Ride = Circuit::Start();
+    Mirrors->Invalidate();
     Remainder = 0;
     bBoost = false;
     LookAhead();
     UpdateTraffic();
     UpdatePose();
-    InstrumentsUpdate();
+    UpdateDisplays();
 }
 
 void ARidePawn::CaptureLocation(UNeonRideSave &Save) const
@@ -277,10 +282,11 @@ bool ARidePawn::RestoreLocation(const UNeonRideSave &Save)
     Ride.s = Save.Distance;
     Ride.lateral = Save.Lane;
     Ride.headingError = FMath::UnwindRadians(Save.Heading);
+    Mirrors->Invalidate();
     Ride.charge = Save.Charge;
     Ride.laps = Save.Laps;
     UpdatePose();
-    InstrumentsUpdate();
+    UpdateDisplays();
     return true;
 }
 
@@ -311,7 +317,7 @@ void ARidePawn::Tick(float Dt)
     if (!WasCrashing && Ride.crashAge >= 0.)
         Weather->PlayImpact(Ride.severity);
     Weather->UpdateWeather(Dt,Ride,Throttle,Brake);
-    InstrumentsUpdate();
+    UpdateDisplays();
 }
 
 void ARidePawn::UpdateTraffic()
@@ -420,9 +426,10 @@ void ARidePawn::UpdatePose()
     Camera->SetFieldOfView(91. + 9. * SpeedUnit);
 }
 
-void ARidePawn::InstrumentsUpdate()
+void ARidePawn::UpdateDisplays()
 {
     Instruments->UpdateDisplay(Ride);
+    if (Skyway) Mirrors->UpdateView(Ride.elapsed,Ride.crashAge>=0.,Skyway->FrameAt(Ride.s,Ride.lateral),Ride.headingError);
 }
 
 void ARidePawn::UpdateCrashEffects(const Circuit::CrashPose &Pose, const FTransform &Deck)

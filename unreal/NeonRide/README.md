@@ -12,7 +12,7 @@ Ride a 5.28 km elevated circuit through Rainline, Glass Heights, Violet Reach an
 | Pause, resume, save and quit | Esc | View / Create |
 | Restart at the circuit entrance | R | Y / Triangle |
 
-The physical dashboard shows speed, engine revs and nitro charge. Four engine layers respond to RPM, throttle load, shifts, braking and boost. The packaged game's audio attribution is in NeonRide/Content/Credits/engine-credits.txt. A full tank delivers about 3.8 seconds of boost. Let go to recharge after a 1.35-second cooldown. The tank refills in 8.5 seconds. Release the steering input to hold your world heading. You steer through each bend. Pausing or quitting saves your distance, lane, heading, lap count and charge. Your next session starts at rest.
+The two original mirror inserts show live views of the road and traffic behind the bike from a shared rear-facing camera. The physical dashboard shows speed, engine revs and nitro charge. Four engine layers respond to RPM, throttle load, shifts, braking and boost. The packaged game's audio attribution is in NeonRide/Content/Credits/engine-credits.txt. A full tank delivers about 3.8 seconds of boost. Let go to recharge after a 1.35-second cooldown. The tank refills in 8.5 seconds. Release the steering input to hold your world heading. You steer through each bend. Pausing or quitting saves your distance, lane, heading, lap count and charge. Your next session starts at rest.
 
 ## Run and build
 

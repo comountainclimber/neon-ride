@@ -95,3 +95,16 @@ return tint*lerp(.082,frame.x*frame.y*value,fade)*saturate(1.-abs(N.z));""")
         output(glow, ue.MaterialProperty.MP_EMISSIVE_COLOR)
     make("M_CircuitInfill", midrise)
 
+
+    def mirror(mat, node):
+        mat.set_editor_property("shading_model", ue.MaterialShadingModel.MSM_UNLIT)
+        mat.set_editor_property("two_sided", True)
+        rear = node(ue.MaterialExpressionTextureSampleParameter2D, -600, 0,
+                    parameter_name="RearView", texture=maps[0], sampler_type=ue.MaterialSamplerType.SAMPLERTYPE_COLOR)
+        tint = node(ue.MaterialExpressionCustom, -230, 0, inputs=[named_input("Rear")],
+                    output_type=ue.CustomMaterialOutputType.CMOT_FLOAT3,
+                    code="return max(Rear,0.)*float3(.77,.87,.93)+float3(.016,.026,.030);")
+        wire(rear, tint, "Rear")
+        output(tint, ue.MaterialProperty.MP_EMISSIVE_COLOR)
+    make("M_RearMirror", mirror)
+

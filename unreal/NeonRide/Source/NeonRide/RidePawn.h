@@ -10,6 +10,7 @@ class UPointLightComponent;
 class UInstancedStaticMeshComponent;
 class ATrafficVehicleActor;
 class URideWeather;
+class URideMirrors;
 class URideInstruments;
 class SRideMenu;
 class UNeonRideSave;
@@ -39,7 +40,7 @@ class ARidePawn : public APawn
         Ride = State;
         UpdatePose();
         UpdateTraffic();
-        InstrumentsUpdate();
+        UpdateDisplays();
     }
 #endif
   private:
@@ -51,6 +52,7 @@ class ARidePawn : public APawn
     UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> ContactSparks;
     UPROPERTY() TObjectPtr<UCameraComponent> Camera;
     UPROPERTY() TObjectPtr<URideWeather> Weather;
+    UPROPERTY() TObjectPtr<URideMirrors> Mirrors;
     UPROPERTY() TObjectPtr<URideInstruments> Instruments;
     UPROPERTY() TArray<TObjectPtr<ATrafficVehicleActor>> Vehicles;
     UPROPERTY() TArray<TObjectPtr<USceneComponent>> Gloves;
@@ -106,7 +108,7 @@ class ARidePawn : public APawn
     bool SaveLocation() const;
     void UpdatePose();
     void UpdateTraffic();
-    void InstrumentsUpdate();
+    void UpdateDisplays();
     void BuildCrashRider();
     void UpdateCrashEffects(const Circuit::CrashPose &Pose, const FTransform &Deck);
 };

@@ -10,11 +10,18 @@ def import_models(source):
     files = sorted(source.glob("*.glb"))
     if len(files) != 18:
         raise RuntimeError(f"Expected the 18 film models in {source}, found {len(files)}")
+    def retain_glass_geometry(key, mesh):
+        if key == "bike" and not mesh.get_editor_property("allow_cpu_access"):
+            mesh.set_editor_property("allow_cpu_access", True)
+            assets.save_loaded_asset(mesh, False)
+
     for file in files:
         key = file.stem.replace("-", "_")
         folder = "/Game/Film/" + key
         target = folder + "/SM_" + key
         if assets.does_asset_exist(target):
+            if key == "bike":
+                retain_glass_geometry(key, assets.load_asset(target))
             continue
         task = ue.AssetImportTask()
         task.filename = str(file)
@@ -30,6 +37,7 @@ def import_models(source):
         if len(meshes) != 1:
             raise RuntimeError(f"{file.name} imported {len(meshes)} static meshes")
         mesh = meshes[0]
+        retain_glass_geometry(key, mesh)
         if mesh.get_path_name().split(".")[0] != target:
             if not assets.rename_loaded_asset(mesh, target):
                 raise RuntimeError(f"Could not give {file.name} a stable Unreal asset path")

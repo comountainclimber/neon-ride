@@ -6,6 +6,8 @@ Ride the 5.28 km elevated circuit in the browser or in Unreal Engine 5.8.4 on Wi
 
 Traffic and guardrails respond to the angle and closing speed of contact. A scrape costs speed. A hard impact separates Vesper from the bike, and each carries its own momentum into the landing, bounce and slide. The bike resets at rest in a traffic gap after the crash.
 
+Both sets of handlebar mirrors show the road behind the bike. On a phone, slide the steering pad with one thumb and hold throttle, brake or nitro with the other. Double-tap the road to face forward. The pause menu lets you swap the steering thumb and adjust rendering resolution.
+
 - [Play on Vercel](https://neon-ride-orpin.vercel.app) · [Browser source and assets](web/) · [Unreal project and build instructions](unreal/NeonRide/)
 - To run locally, serve `web/` with `python -m http.server 8000 --directory web`, then open `http://localhost:8000`.
 - GitHub deploys the `web/` directory to the linked Vercel project on updates to `main`.
