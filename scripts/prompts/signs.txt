@@ -1,0 +1,8 @@
+The attached images show an original short film set in a far-future New York at night in heavy rain (storyboard/sb-2.png) and its invented glyph script (signs/glyph-sheet.png). Use your image generation tool to design three kinds of holographic street-sign structures that line an elevated skyway, and save each as a single three-quarter view from slightly above, the whole object in frame with margin, on a plain flat mid-grey background, no ground, no shadow, no text, letters, numbers, logos or watermark: ./concepts/sign-a.png, ./concepts/sign-b.png, ./concepts/sign-c.png (square, about 1024x1024). Do not write code other than what is needed to save the files.
+
+Each design is a solid physical structure (sleek metal, dark glass, emitter lenses, light strips) that projects a hologram; show the projected hologram as a glowing translucent panel using glyphs from the attached sheet. Elegant, far-future, clean. Original designs.
+
+sign-a.png: Floating ring. A hovering metal ring with emitter nodes around it, projecting a glowing glyph word in cyan inside the ring.
+sign-b.png: Totem pylon. A tall slim roadside pylon of dark metal and glass, with a vertical magenta glyph hologram running up a projector rail on its face.
+sign-c.png: Overhead projector gantry. A sleek curved beam on two slim legs spanning a road lane, with projector heads under the beam casting a wide amber and white glyph hologram panel in the air beneath it.
+When finished, list the saved file paths.

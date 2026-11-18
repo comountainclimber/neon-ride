@@ -1,0 +1,12 @@
+The two attached images are approved concept frames for an original 20-second short film, a single continuous first-person ride on a motorcycle through a far-future New York at night in heavy rain: concepts/r6-2.png is the first half (an open skyway: a glowing ribbon of road with low rails hanging high above the city, lanes of flying vehicles alongside, the glowing street grid far below, preserved old buildings with fire escapes and wooden water towers among colossal future towers) and concepts/r6-3.png is the second half (the skyway becomes glass-walled and banks into a long left curve between towers, teal and warm amber light, a vast translucent hologram jellyfish drifting among the towers below). All writing is an elegant invented script of smooth arcs, circles, dots and bars, never English and never spiky.
+
+Use your image generation tool to draw the film's storyboard as six key frames, each a finished full-colour frame in the same style, and save them in ./storyboard/ as sb-1.png to sb-6.png (landscape 16:9, about 1536x864 or the closest size available). Keep the bike's cockpit, the rider's armoured gloved hands, the mirrors and the dashboard identical in all six, so they read as one continuous shot. Do not write any code other than what is needed to save the files.
+
+sb-1 (0 s): the open skyway, the bike at speed, rain streaking toward the camera, flying traffic streaming ahead, blue tones.
+sb-2 (4 s): a sleek flying car overtakes close on the right, its light trail and spray sweeping past the mirror; a glowing glyph road marking rushes under the bike.
+sb-3 (8 s): ahead, the skyway enters a glass-walled section and begins to bank left; the light starts to turn teal and amber.
+sb-4 (11 s): deep in the curve, the bike leaning hard left, rain running sideways across the glass wall, the old buildings and water towers sweeping past.
+sb-5 (15 s): the hologram jellyfish, far bigger than it first seemed, rises slowly from below beside the skyway, its glow filling the glass.
+sb-6 (19 s): the jellyfish's translucent bell drifts up across the skyway and the bike rides straight into it; the whole frame is flooded with its soft glowing light and drifting tendrils, the cockpit silhouetted against it, a moment before the cut to black.
+
+Style: cinematic, photographic, strong depth, moody, heavy rain. Original designs, not based on any existing film, game or anime. No watermark, border or captions. When finished, list the saved file paths.

@@ -1,0 +1,15 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Blender saves and the bundles that were shipped to the render pod
+*.blend
+*.blend1
+cloud/
+
+# render output: only the finished film is kept (frames are ~8 GB and can be re-rendered)
+renders/*
+!renders/neon-ride-final.mp4
+
+.env
+.env.*

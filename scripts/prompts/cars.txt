@@ -1,0 +1,8 @@
+The attached images are frames from an original short film set in a far-future New York at night in heavy rain (storyboard/sb-2.png shows the existing sleek black flying car). Use your image generation tool to design three more flying cars for the city's traffic, each clearly different in silhouette and purpose, and save each as a single striking three-quarter view from slightly above, on a plain flat mid-grey background, flat even studio lighting, whole vehicle in frame with margin, no ground, no shadow, no text, letters, numbers, logos or watermark: ./concepts/car-a.png, ./concepts/car-b.png, ./concepts/car-c.png (square, about 1024x1024). Do not write code other than what is needed to save the files.
+
+All three: original designs, not based on any existing film, game, anime or real vehicle; no wheels; glowing thrusters or lift pads underneath; crisp panel lines; light strips that would read at night. Any markings use the elegant glyph script of smooth arcs, circles, dots and bars, never English.
+
+car-a.png: Luxury coupe. Long, low and elegant, polished pearl-white and chrome with a smoked glass canopy, warm gold light strips, two slim rear thruster rings.
+car-b.png: Heavy hauler. A boxy, armoured cargo or taxi pod in matte charcoal and safety yellow, chunky corner thrusters, a big front light bar, rugged and utilitarian.
+car-c.png: Interceptor. A narrow, aggressive dart in gloss black with a magenta and blue light bar along its spine, swept fins, a single large rear thruster, built for speed.
+When finished, list the saved file paths.

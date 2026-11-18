@@ -1,0 +1,7 @@
+The attached images are approved frames from an original short film set in a far-future New York at night in heavy rain (storyboard/sb-2.png and storyboard/sb-4.png). Use your image generation tool to draw clean reference images for image-to-3D reconstruction and save them in ./refs/props/. Do not write code other than what is needed to save the files.
+
+A. The sleek black flying car that overtakes the bike in storyboard/sb-2.png (glossy black body, teal light strips, a long low teardrop shape, no wheels, glowing underside thrusters). Save car-front.png, car-left.png, car-back.png, car-right.png (square, about 1024x1024), strict orthographic views of the same design.
+B. A classic New York rooftop wooden water tower on a steel stand, weathered wood staves with metal hoops, conical roof, ladder. Save water-tower.png (square), a single three-quarter view from slightly above.
+C. The top of a pre-war New York building: the last three storeys of a brick and stone facade with ornate cornice, arched windows and a black iron fire escape zig-zagging down the front, cut off cleanly below. Save building-crown.png (square), a single three-quarter view from slightly above.
+
+For every image: plain flat mid-grey background, no floor, no shadow, no rain, flat even neutral studio lighting, the whole object in frame with margin, no text, labels or watermark. When finished, list the saved file paths.

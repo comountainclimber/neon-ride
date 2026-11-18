@@ -1,0 +1,6 @@
+The attached image is a frame from an original short film set in a far-future New York at night in heavy rain (storyboard/sb-4.png): an elevated skyway lined with tall posts. Use your image generation tool to design two far-future skyway lampposts that stand along the edge of that skyway, and save each as a single three-quarter view from slightly below, the whole post top to bottom in frame with margin, on a plain flat mid-grey background, no ground, no shadow, no text, letters, numbers, logos or watermark: ./concepts/lamp-a.png and ./concepts/lamp-b.png (portrait, about 1024x1536). Do not write code other than what is needed to save the files.
+
+Both: about 8 metres tall, sleek dark metal and smoked glass, elegant and centuries in the future, with a glowing light element that would read at night. Original designs.
+lamp-a.png: A slender curved swan-neck post that arcs over the road, ending in a long thin glowing teal light blade, with a faint ring of light at its base.
+lamp-b.png: A tall faceted obelisk-like post with a vertical slot of warm white light running up its face and a small floating light disc hovering above its top.
+When finished, list the saved file paths.

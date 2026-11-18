@@ -1,0 +1,7 @@
+The attached images are frames from an original short film set in a far-future New York at night in heavy rain (storyboard/sb-1.png and storyboard/sb-4.png). Use your image generation tool to paint two distant skyline backdrops (matte paintings) to be placed far behind a 3D city, and save them in ./textures/ as skyline-a.png and skyline-b.png (landscape, about 1536x1024). Do not write code other than what is needed to save the files.
+
+Both: only the distant skyline, kilometres away: colossal far-future spires, slender towers, great arches and bridges between towers, traced with thin glowing lines and countless tiny lit windows, partly veiled by rain and haze; low storm clouds above, lit from below by the city glow. No foreground: no road, no vehicles, no nearby buildings, no people, no text, letters or logos. The bottom 15 percent of the image is a soft band of glowing haze where the towers' bases disappear; the top 25 percent is dark storm cloud fading to near black at the top edge. The left and right edges should fade into haze so the image can blend into a dark sky.
+
+skyline-a.png: cool palette, blue-white and pale violet light, the densest cluster of spires in the centre. Matches storyboard/sb-1.png.
+skyline-b.png: warm teal and amber palette, with several enormous glowing arched megastructures among the spires. Matches storyboard/sb-4.png.
+When finished, list the saved file paths.

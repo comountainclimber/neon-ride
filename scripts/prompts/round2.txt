@@ -1,0 +1,10 @@
+The attached image (concepts/concept-1.png) is the chosen direction for an original short film: a first-person point of view from the seat of a motorcycle racing down a rain-soaked street in a vertical megacity canyon in a distant alien universe, magenta and cyan light, holographic billboards with invented alien glyphs, the bike's cockpit with the rider's armoured gloved hands, mirrors and a glowing instrument display in the lower part of the frame.
+
+Use your image generation tool to create 4 variations of this exact shot and save them in ./concepts/ as r2-1.png to r2-4.png (landscape 16:9, about 1536x864 or the closest size available). Keep the first-person framing, the cockpit layout, the wet street and the megacity canyon in all four. Do not write any code other than what is needed to save the files.
+
+1. Darker and more mysterious: far fewer lights, deep shadows and thick haze, the city mostly black silhouettes; the main light is a vast translucent hologram jellyfish drifting slowly over the street ahead, its cyan and magenta glow reflected in the flooded road.
+2. Tighter and faster: a much narrower street, sky bridges, pipes and cables hanging low overhead, signs jutting into the road, a heavy elevated train thundering across a bridge just ahead and above the rider, sparks raining from its rails.
+3. The alien reveal: at the far end of the street the canyon opens out and a colossal alien structure, a glowing ring-shaped megastructure or space elevator rising beyond the clouds, fills the gap, dwarfing the city; the street funnels the eye straight to it.
+4. Hunted: a sleek black flying craft hangs above the street ahead, its hard white searchlight beam cutting through the rain straight onto the road in front of the bike; the rest of the scene is dimmer so the beam dominates.
+
+Style: cinematic, moody, photographic concept art with strong depth, heavy rain with drops on the windscreen and mirrors. Any signs or screens use invented alien glyphs only, never real letters, words, logos or brands. Original designs, not based on any existing film, game or anime. No text, watermark or border. When finished, list the saved file paths.

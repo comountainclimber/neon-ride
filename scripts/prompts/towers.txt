@@ -1,0 +1,8 @@
+The attached images are frames from an original short film set in a far-future New York at night in heavy rain (storyboard/sb-1.png, storyboard/sb-4.png). Use your image generation tool to design three far-future skyscrapers for the city skyline, and save each as a single full-height three-quarter view from slightly below, the whole tower in frame top to bottom with margin, on a plain flat mid-grey background, no ground, no other buildings, no sky, no text, letters, numbers, logos or watermark: ./concepts/tower-a.png, ./concepts/tower-b.png, ./concepts/tower-c.png (portrait, about 1024x1536). Do not write code other than what is needed to save the files.
+
+Important for all three: they will be seen at night, so paint them as at night against the grey: dark glass and dark metal surfaces with many brightly lit windows (warm white and cool white), glowing vertical and horizontal light lines along their edges and floors, and a glowing crown at the top. Crisp, clean, architectural, elegant, centuries in the future, not dystopian. Original designs, not based on any real building.
+
+tower-a.png: Twisting spire. A slender tower that twists as it rises, ribbons of cool blue light spiralling up its edges, ending in a needle spire with a glowing tip.
+tower-b.png: Stacked megablock. A bold tower of stacked offset glass blocks with sky gardens and cantilevered terraces between them, warm lit windows, amber light bands on each block, a ring-shaped crown.
+tower-c.png: Arched twin tower. Two tall slabs joined by glowing sky-bridges and a great arch near the top, white and violet light lines, an art-deco-inspired stepped crown reimagined for the far future.
+When finished, list the saved file paths.

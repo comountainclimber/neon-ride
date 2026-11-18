@@ -1,0 +1,6 @@
+The attached image (storyboard/sb-4.png) sets the look of an original short film set in a far-future New York at night in heavy rain. Use your image generation tool to draw seamless tileable textures, each a flat straight-on orthographic view filling the whole square frame edge to edge, with flat even lighting, no perspective, no shadows cast across them, no text, letters, numbers or logos. Save them in ./textures/ (square, about 1024x1024). Do not write code other than what is needed to save the files.
+
+1. facade-old.png: a pre-war New York brick facade at night: rows of tall windows, about four storeys and three window bays in the tile, some windows warmly lit with curtains and interiors, some dark, stone lintels, a black iron fire escape with landings and ladders across the middle bay. Wet brick.
+2. facade-tower.png: a far-future glass skyscraper facade at night: dark blue-black glass panels, thin bright vertical mullion lines, a few lit floors in cool white with faint interiors, about eight floors in the tile.
+3. deck.png: the road surface of a futuristic elevated skyway: smooth dark composite panels with fine seams, very subtle texture, wet, near black.
+When finished, list the saved file paths.

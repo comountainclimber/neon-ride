@@ -1,0 +1,9 @@
+The attached images are the approved design for the motorcycle in an original short film: concepts/bike-1.png shows its cockpit from the rider's seat (dark armoured panels, thin teal and violet light strips, a wide curved display under a windscreen, mirrors on stalks, armoured segmented gloves), and storyboard/sb-1.png shows it in the film.
+
+Use your image generation tool to draw clean model-sheet views for image-to-3D reconstruction and save them in ./refs/. Do not write code other than what is needed to save the files.
+
+A. The whole motorcycle, consistent with the cockpit in the attached images, no rider: a sleek far-future sport-touring bike, dark armoured panels, teal and violet light strips, both wheels with glowing hub rings. Save bike-front.png, bike-left.png, bike-back.png, bike-right.png (square, about 1024x1024): strict orthographic front, left side, back and right side views; wheels straight; the whole bike centred with margin.
+
+B. One armoured right-hand glove with a short length of forearm armour, the fingers curled as if gripping a handlebar but holding nothing, matching the gloves in concepts/bike-1.png. Save glove-front.png, glove-left.png, glove-back.png, glove-right.png (square, about 1024x1024), strict orthographic views.
+
+For every view: plain flat mid-grey background, no floor, no shadow, no rain, no reflections of a scene; flat even neutral studio lighting so the materials read; light strips glowing only faintly; no text, labels or watermark. Generate one view first, then use it as reference for the others so they match. When finished, list the saved file paths.

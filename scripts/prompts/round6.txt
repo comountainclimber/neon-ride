@@ -1,0 +1,12 @@
+The attached image (concepts/r4-3.png) is the chosen direction for an original short film: a first-person point of view from the seat of a motorcycle racing along an elevated glass-walled skyway fifty storeys up through a far-future New York at night in heavy rain. Far below, the Manhattan street grid glows in perfect lines; preserved old buildings with fire escapes and wooden rooftop water towers stand among colossal future towers and arches; the skyway's edges are lined with light strips; the bike's cockpit with the rider's armoured gloved hands, mirrors and a glowing display fills the lower frame.
+
+Change: every piece of writing is now an invented future script instead of English: the word written in light on the road, the overhead avenue sign, the subway signs below, the dashboard readout. The script must look elegant and clean: smooth geometric strokes, circles, arcs and horizontal bars, like a future calligraphy. Never spiky, jagged, thorny or runic. No English letters or numbers anywhere, no real brands or logos.
+
+Use your image generation tool to create 4 variations of this shot and save them in ./concepts/ as r6-1.png to r6-4.png (landscape 16:9, about 1536x864 or the closest size available). Make them clearly different in composition and palette. Do not write any code other than what is needed to save the files.
+
+1. Refined original: the same composition and violet-blue palette, cleaner and with more depth, the script glowing on the road ahead and on the overhead sign.
+2. Open skyway: no glass walls, just a glowing ribbon of road with low rails hanging in the air, rain sheeting across it, lanes of flying vehicles streaming alongside at the same height, the glowing grid far below.
+3. Curve and colour: the skyway banks into a long left curve between towers, the bike leaning into it, teal and warm amber light, a vast translucent hologram jellyfish drifting among the towers below the skyway.
+4. The portal: darker, almost black, the skyway's light strips the main light, the city below a glittering field, and ahead the skyway runs straight into a glowing opening in the side of an enormous tower.
+
+Style: cinematic, photographic, strong depth, moody, heavy rain with drops on the windscreen and mirrors. Original designs, not based on any existing film, game or anime. No watermark or border. When finished, list the saved file paths.

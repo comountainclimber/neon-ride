@@ -1,0 +1,12 @@
+The attached image (concepts/r6-2.png) shows the rider's view from an approved concept for an original short film set in a far-future city at night in heavy rain. Design the motorcycle the rider is on.
+
+Use your image generation tool to create 4 different cockpit designs, each seen from the rider's own first-person viewpoint exactly like the attached image (handlebars, the rider's armoured gloved hands on the grips, mirrors, windscreen, instrument display, the top of the fuel tank or body), and save them in ./concepts/ as bike-1.png to bike-4.png (landscape 16:9, about 1536x864 or the closest size available). Use a dim, rainy, softly lit background that is simply out of focus so the bike design reads clearly. Do not write any code other than what is needed to save the files.
+
+Any readout uses an elegant invented script of smooth arcs, circles, dots and bars, never English letters or numbers, never spiky. No real brands or logos. Original designs, not based on any existing film, game, anime or real motorcycle.
+
+1. Refined: the bike from the attached image cleaned up, dark armoured panels, thin teal and violet light strips, a wide curved display.
+2. Ceramic: smooth white ceramic and smoked glass, very few seams, the display projected as light onto the inside of the windscreen, minimal and elegant.
+3. Hypersport: low and aggressive, carbon black with sharp faceted panels, a tiny screen, clip-on bars set low, the rider's hands further forward.
+4. Heavy cruiser: wide handlebars, chunky machined metal and leather-like surfaces, a round analog-style gauge with glowing glyphs, warm amber light.
+
+Keep the gloves: armoured, dark, segmented like the attached image. When finished, list the saved file paths.

@@ -1,0 +1,14 @@
+The attached image (concepts/r2-1.png) shows the chosen mood for an original short film: a first-person point of view from the seat of a motorcycle racing down a rain-soaked city street at night, dark and mysterious, thick haze, the flooded road mirroring the light, and a vast translucent hologram jellyfish drifting slowly above the street. The lower part of the frame shows the bike's cockpit: the rider's armoured gloved hands on the grips, mirrors, and a glowing instrument display.
+
+New direction: the city is New York City a few decades in the future. It must read as modern, sleek and prosperous, not dystopian or grimy: glass and steel towers, clean LED facades, warm lit windows, wide avenues. Keep it at night, in heavy rain, and keep the hologram jellyfish (as public art drifting between the towers).
+
+Signage must feel like New York: plain readable English words and street-level signs, never alien symbols. Use invented business names and generic words only (for example HOTEL, DELI, PIZZA, 24 HR, PARKING, BAR, OPEN, theatre marquees with invented show names, street signs such as W 44 ST and 7 AV). No real brands, logos or trademarks, and no real landmark buildings.
+
+Use your image generation tool to create 4 variations of this first-person shot and save them in ./concepts/ as r3-1.png to r3-4.png (landscape 16:9, about 1536x864 or the closest size available). Keep the same cockpit, the jellyfish and the wet street in all four. Do not write any code other than what is needed to save the files.
+
+1. Midtown avenue: giant curved LED billboard walls on glass towers, a theatre marquee, autonomous yellow taxis with glowing roof lights, steam rising from manholes, the jellyfish drifting between the billboards.
+2. Quiet side street: darker and emptier, sleek modern buildings beside old brownstones and cast-iron facades, vertical blade signs (HOTEL, BAR), a lit subway entrance with a glowing globe, few lights, the jellyfish glowing above the end of the block.
+3. Wide future avenue: a broad boulevard with a planted median and light-strip crosswalks, towering glass skyscrapers with thin lines of light, cool white and blue tones, the jellyfish lighting the rain from above.
+4. Crosstown street aimed at the river: the street funnels the eye toward a glowing skyline across the water at the end of the block, magenta and cyan accents on modern storefronts, the jellyfish hovering over the far end.
+
+Style: cinematic, moody, photographic, strong depth, heavy rain with drops on the windscreen and mirrors. Original designs, not based on any existing film, game or anime. No watermark or border. When finished, list the saved file paths.

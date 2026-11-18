@@ -1,0 +1,10 @@
+Use your image generation tool to design an invented writing system for the signage of a far-future city in an original short film, and save it as ./signs/glyph-sheet.png (landscape, about 1536x1024). Do not write any code other than what is needed to save the file.
+
+The script must look elegant and clean: smooth geometric strokes, circles, arcs, dots and horizontal bars, like a future calligraphy; balanced and readable as writing; never spiky, jagged, thorny or runic. No English letters or numbers, nothing resembling a real alphabet, brand or logo.
+
+Lay out on a plain black background, glowing soft white like neon tubes:
+- a grid of 24 individual glyphs;
+- below it, six short sample words of 2 to 5 glyphs each, as they would appear on street signs, a road marking and a dashboard readout;
+- one horizontal and one vertical sign layout using those words.
+
+When finished, print the saved file path.

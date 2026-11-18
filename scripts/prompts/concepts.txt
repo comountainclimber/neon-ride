@@ -1,0 +1,13 @@
+Use your image generation tool to create 4 distinct concept-art frames for an original short film, and save them in ./concepts/ as concept-1.png to concept-4.png (landscape 16:9, about 1536x864 or the closest size available). Do not write any code other than what is needed to save the files.
+
+The shot, the same in all four: a first-person point of view from the seat of a motorcycle racing down a city street at night in heavy rain, in a distant, alien cyberpunk universe. The lower part of the frame shows the bike's cockpit: handlebars, the rider's armoured gloved hands on the grips, and a small glowing instrument display. Beyond it, a long wet street stretches ahead between towering buildings, the soaked road mirroring neon light, rain streaking through the beams, haze swallowing the far end of the street.
+
+Style for all four: cinematic, moody, photographic concept art with strong depth, lens-level rain, readable forms. Any signs or screens use invented alien glyphs only, never real letters, words, logos or brands. Original designs, not based on any existing film, game or anime. No text, watermark or border.
+
+Make the four worlds clearly different:
+1. A vertical megacity canyon: buildings so tall their tops vanish in cloud, stacked walkways and cables overhead, huge holographic billboards, magenta and cyan light.
+2. Alien sky: a giant ringed planet and a second moon hang low over the end of the street, amber and teal lights, organic curved architecture with ribbed towers.
+3. Industrial undercity: brutalist concrete and rusted megastructures, steam vents, sodium-orange street lamps against deep red neon, flying freight vehicles with searchlights overhead.
+4. Deep monochrome: an almost black city lit only by thin icy white and pale blue neon lines, sleek glossy towers, a lone tram of light crossing far ahead, minimal and lonely.
+
+When finished, list the saved file paths.

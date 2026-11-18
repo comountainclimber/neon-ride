@@ -1,0 +1,13 @@
+Use your image generation tool to create 4 concept-art frames for an original short film and save them in ./concepts/ as r5-1.png to r5-4.png (landscape 16:9, about 1536x864 or the closest size available). Do not write any code other than what is needed to save the files.
+
+The shot: a first-person point of view from the seat of a motorcycle racing through a city in the distant future, at night in heavy rain. The lower part of the frame shows the bike's cockpit: the rider's armoured gloved hands on the grips, mirrors, a glowing instrument display, rain beading on the windscreen. The city is a place where humans and aliens live, centuries or millennia ahead of us: architecture, vehicles and lighting no one has built yet. It must feel advanced, elegant and prosperous, dark and mysterious, never dystopian, grimy or rusted.
+
+Signage is clean and minimal: readable English words (SECTOR 9, TRANSIT, HOTEL, OPEN) or simple geometric marks. Never spiky or runic alien symbols. No real brands, logos or trademarks. Original designs, not based on any existing film, game or anime. No watermark or border.
+
+Make the four clearly different from each other in composition, palette and idea; do not repeat the same layout:
+1. Human colony on another world: elegant white and glass towers with soft curved forms, avenues lined with ribbons of light, an alien sky with two moons breaking through the storm clouds above the end of the street. Pearl white, pale gold and teal.
+2. A city grown by aliens that humans now share: vast smooth organic-crystalline buildings with veins of bioluminescent light running through them, translucent bridges, human holographic signs floating in front of the alien architecture. Deep green and violet glow.
+3. Endless megastructure: the whole city is one continuous structure, the street is a canyon so deep its ceiling is a lattice of bridges and walkways far above, long white light lines running into the distance, a sense of enormous scale. Monochrome cold white with one warm accent.
+4. Sky city: the road is suspended between floating towers high above a sea of storm clouds lit from below, other lit floating districts drifting in the distance, the road curving ahead into the dark. Midnight blue and amber.
+
+Style: cinematic, photographic, strong depth, moody, heavy rain. When finished, list the saved file paths.
