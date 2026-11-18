@@ -2,7 +2,7 @@
 
 Open `NeonRide.uproject` in Unreal Engine 5.8.4 and press **Play**. A source checkout on Windows needs Visual Studio 2022 C++ Build Tools and a Windows SDK. The game creates its district on the engine's Entry map when play begins.
 
-Start on the film's elevated skyway. Ride into the long left curve to find the Overlook, or brake at the amber gantry and turn down the market ramp. The terrace lies 30 m below, with open plazas and streets between city blocks. Two more ramps connect the terrace to the Transit Yard and Overlook. All three ramps work in either direction.
+Start parked on the film's elevated skyway. Ride into the long left curve to see the pulsing jellyfish above the Overlook, or brake at the amber gantry and turn down the market ramp. Walk between the lantern stalls, or ride west to the cab platforms at Transit Yard. The terrace lies 30 m below the skyway. Three ramps connect the upper and lower streets in both directions.
 
 | Ride | Keyboard and mouse | Gamepad |
 | --- | --- | --- |
@@ -11,9 +11,12 @@ Start on the film's elevated skyway. Ride into the long left curve to find the O
 | Look around | Mouse | Right stick |
 | Face forward | C | Press right stick |
 | Toggle district map | M | Menu / Options |
+| Dismount when stopped / remount beside bike | E | A / Cross |
+| Walk / strafe on foot | W, A, S, D | Left stick |
+| Pause, resume or save and quit | Esc | View / Create |
 | Return to the skyway entrance | R | Y / Triangle |
 
-Release the throttle to coast. Brake to park and use steering to turn around, even at a standstill. The map shows street blocks, ramps, landmarks and your heading. Ambient cabs and freighters circulate between the two levels. Vehicle contact slows the bike in place.
+Release the throttle to coast. Brake to park and use steering to turn around, even at a standstill. The map marks your location and the bike you left behind. The standalone game remembers your position when you dismount, remount, pause or quit. Reloading places the bike at rest. Ambient cabs and freighters circulate between the two levels. Vehicle contact slows the bike in place.
 
 ## Implementation
 

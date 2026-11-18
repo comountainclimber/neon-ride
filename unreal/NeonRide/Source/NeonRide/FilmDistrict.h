@@ -18,9 +18,10 @@ public:
 
 private:
     UPROPERTY() TObjectPtr<ASkyway> Road;
-    UPROPERTY() TMap<FName, TObjectPtr<UInstancedStaticMeshComponent>> Layers;
+    UPROPERTY() TMap<FName, TObjectPtr<UInstancedStaticMeshComponent>> ModelLayers;
     double FlightTime = 0.0;
     void AddModel(const TCHAR* Key, const FVector& PositionCm, const FRotator& Rotation, double SizeCm);
     void PositionAircraft();
+    void DressLowerStreets();
     void AddPanel(const TCHAR* MaterialName, FVector Position, FVector Across, double WidthCm, double HeightCm);
 };

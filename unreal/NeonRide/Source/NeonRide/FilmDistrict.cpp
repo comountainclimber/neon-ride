@@ -2,7 +2,9 @@
 #include "FilmArt.h"
 #include "Skyway.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 
 AFilmDistrict::AFilmDistrict()
@@ -13,7 +15,7 @@ AFilmDistrict::AFilmDistrict()
 
 void AFilmDistrict::AddModel(const TCHAR* Key, const FVector& PositionCm, const FRotator& Rotation, double SizeCm)
 {
-    auto* Found = Layers.Find(FName(Key));
+    auto* Found = ModelLayers.Find(FName(Key));
     if (!Found)
     {
         if (auto* Mesh = NeonRide::LoadFilmModel(Key))
@@ -25,10 +27,10 @@ void AFilmDistrict::AddModel(const TCHAR* Key, const FVector& PositionCm, const 
             Layer->SetStaticMesh(Mesh);
             Layer->SetCollisionEnabled(ECollisionEnabled::NoCollision);
             Layer->RegisterComponent();
-            Layers.Add(FName(Key), Layer);
+            ModelLayers.Add(FName(Key), Layer);
         }
-        else Layers.Add(FName(Key), nullptr);
-        Found = Layers.Find(FName(Key));
+        else ModelLayers.Add(FName(Key), nullptr);
+        Found = ModelLayers.Find(FName(Key));
     }
     if (auto* Layer = Found->Get())
         Layer->AddInstance(NeonRide::FilmTransform(Layer->GetStaticMesh(), PositionCm, Rotation, SizeCm));
@@ -49,11 +51,13 @@ void AFilmDistrict::Populate(ASkyway* Skyway)
     int BlockIndex = 0;
     for (const auto& B : Road->GetDistrict().Buildings())
     {
+        if (B.Kind != NeonRide::EBuilding::CityBlock) continue;
         const FVector Roof = FVector(B.X, B.Y, NeonRide::FDistrict::TerraceZ + B.Height) * 100;
         if (BlockIndex % 4 == 0) AddModel(TEXT("building_crown"), Roof, FRotator::ZeroRotator, 2300);
         else if (BlockIndex % 3 == 0) AddModel(TEXT("water_tower"), Roof, FRotator::ZeroRotator, 900);
         ++BlockIndex;
     }
+    DressLowerStreets();
     for (int S = 10; S < 1070; S += S < 372 ? 26 : 16)
     {
         const FTransform Frame = Road->FrameAt(S).GetRelativeTransform(Road->GetActorTransform());
@@ -86,12 +90,95 @@ void AFilmDistrict::Populate(ASkyway* Skyway)
         const double A = I * PI / 4.0;
         const FVector Radius(FMath::Cos(A),FMath::Sin(A),0);
         const FVector Centre = FVector(30000,-32000,22500) + 220000 * Radius;
-        AddPanel(I % 3 == 1 ? TEXT("M_Skyline_b") : TEXT("M_Skyline_a"),Centre,
-            FVector(-Radius.Y,Radius.X,0),181500,79000);
+        AddPanel(I % 3 == 1 ? TEXT("M_Horizon_b") : TEXT("M_Horizon_a"),Centre,
+            FVector(-Radius.Y,Radius.X,0),232000,95000);
+    }
+    if (auto* Jelly = LoadObject<UStaticMesh>(nullptr,TEXT("/Game/Environment/SM_Hologram.SM_Hologram")))
+    {
+        const FVector Centre(65800,-57600,3400);
+        auto* Hologram = NeonRide::AttachFilmModel(RootComponent,Jelly,FTransform(Centre));
+        Hologram->SetCastShadow(false);
+        Hologram->SetBoundsScale(1.2f);
     }
     for (const TCHAR* Key : {TEXT("car"),TEXT("car_a"),TEXT("car_b"),TEXT("car_c")})
         for (int I = 0; I < 2; ++I) AddModel(Key, FVector::ZeroVector, FRotator::ZeroRotator, 500);
     PositionAircraft();
+}
+
+void AFilmDistrict::DressLowerStreets()
+{
+    const double Floor = NeonRide::FDistrict::TerraceZ * 100;
+    auto* Glow = LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/Environment/M_Neon.M_Neon"));
+    auto* Sphere = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+    auto* Rod = LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+    auto MakeLayer = [&](const TCHAR* Name,UStaticMesh* Mesh,FLinearColor Colour,bool Lit)
+    {
+        auto* Part = NewObject<UInstancedStaticMeshComponent>(this,FName(Name));
+        AddInstanceComponent(Part);
+        Part->SetupAttachment(RootComponent);
+        Part->SetStaticMesh(Mesh);
+        Part->SetCastShadow(false);
+        Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        Part->RegisterComponent();
+        if (auto* Mat = Part->CreateDynamicMaterialInstance(0,Lit ? Glow : Mesh->GetMaterial(0)))
+            Mat->SetVectorParameterValue(TEXT("Color"),Colour);
+        return Part;
+    };
+    auto* Amber = MakeLayer(TEXT("PaperLanterns"),Sphere,FLinearColor(.98f,.155f,.015f),true);
+    auto* Coral = MakeLayer(TEXT("CoralLanterns"),Sphere,FLinearColor(.79f,.027f,.085f),true);
+    auto* Cables = MakeLayer(TEXT("MarketCables"),Rod,FLinearColor(.045f,.032f,.035f),false);
+    auto Cable = [&](FVector A,FVector B,double Width)
+    {
+        FVector Delta = B-A;
+        Cables->AddInstance(FTransform(FRotationMatrix::MakeFromZ(Delta).ToQuat(),(A+B)*.5,
+            FVector(Width/100,Width/100,Delta.Size()/100)));
+    };
+    auto Lamp = [&](FVector Position,FLinearColor Color,float Power,float Reach)
+    {
+        auto* Light = NewObject<UPointLightComponent>(this);
+        AddInstanceComponent(Light);
+        Light->SetupAttachment(RootComponent);
+        Light->SetRelativeLocation(Position);
+        Light->SetMobility(EComponentMobility::Movable);
+        Light->SetCastShadows(false);
+        Light->SetLightColor(Color);
+        Light->SetIntensity(Power);
+        Light->SetAttenuationRadius(Reach);
+        Light->SetSourceRadius(28);
+        Light->RegisterComponent();
+    };
+    int Line = 0;
+    for (int X : {160,175,190,205,220})
+    {
+        FVector Prev = FVector::ZeroVector;
+        for (int J=0; J<=10; ++J)
+        {
+            const double T = J/10.;
+            const FVector P(X*100,-30500+2600*T,Floor+660-196*FMath::Sin(PI*T));
+            if (J) Cable(Prev,P,3.5);
+            else Cable(P-FVector(0,0,410),P,10);
+            if (J==10) Cable(P-FVector(0,0,410),P,10);
+            Prev=P;
+            if (J%2==1)
+            {
+                Cable(P,P-FVector(0,0,34),2);
+                auto* Bulb=(J+Line)%3 ? Amber : Coral;
+                Bulb->AddInstance(FTransform(FQuat::Identity,P-FVector(0,0,56),FVector(.46,.46,.66)));
+            }
+        }
+        const FString Glyph = FString::Printf(TEXT("M_Glyph%d"),1+Line%6);
+        AddPanel(*Glyph,FVector(X*100,-30260,Floor+182),FVector::XAxisVector,518,90);
+        AddPanel(*Glyph,FVector(X*100,-28140,Floor+180),-FVector::XAxisVector,450,85);
+        Lamp(FVector(X*100,-29200,Floor+415),FLinearColor(1.f,.32f,.085f),10000,1500);
+        ++Line;
+    }
+    for (int Y : {-320,-365})
+    {
+        AddModel(TEXT("cab"),FVector(-8550,Y*100,Floor),FRotator(0,90,0),460);
+        AddModel(TEXT("lamp_a"),FVector(-4050,Y*100,Floor),FRotator(0,180,0),750);
+        AddPanel(TEXT("M_Glyph2"),FVector(-3950,Y*100,Floor+292),FVector::YAxisVector,660,140);
+        Lamp(FVector(-4200,Y*100,Floor+450),FLinearColor(.10f,.67f,1.f),16000,2000);
+    }
 }
 
 void AFilmDistrict::AddPanel(const TCHAR* Name, FVector Position, FVector Across, double WidthCm, double HeightCm)
@@ -106,7 +193,7 @@ void AFilmDistrict::AddPanel(const TCHAR* Name, FVector Position, FVector Across
     Part->SetMaterial(0,Material);
     Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     Part->SetCastShadow(false);
-    Part->SetRelativeTransform(FTransform(FRotationMatrix::MakeFromXY(Across,FVector::UpVector).ToQuat(),Position,FVector(WidthCm/100,HeightCm/100,1)));
+    Part->SetRelativeTransform(FTransform(FRotationMatrix::MakeFromXY(Across,-FVector::UpVector).ToQuat(),Position,FVector(WidthCm/100,HeightCm/100,1)));
     Part->RegisterComponent();
 }
 
@@ -116,7 +203,7 @@ void AFilmDistrict::PositionAircraft()
     const double Sizes[] = {500,560,900,650};
     for (int Type = 0; Type < 4; ++Type)
     {
-        auto* Entry = Layers.Find(FName(Types[Type]));
+        auto* Entry = ModelLayers.Find(FName(Types[Type]));
         if (!Entry || !Entry->Get()) continue;
         auto* Layer = Entry->Get();
         for (int I = 0; I < 2; ++I)

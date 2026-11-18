@@ -94,7 +94,7 @@ void ASkyway::OnConstruction(const FTransform& Transform)
         const FString Path = FString::Printf(TEXT("/Game/Environment/%s.%s"),Key,Key);
         return LoadObject<UMaterialInterface>(nullptr,*Path,nullptr,LOAD_NoWarn);
     };
-    if (auto* Wet = EnvironmentMaterial(TEXT("M_WetDeck"))) Deck->SetMaterial(0,Wet);
+    if (auto* Wet = EnvironmentMaterial(TEXT("M_RainAsphalt"))) Deck->SetMaterial(0,Wet);
     if (auto* Facade = EnvironmentMaterial(TEXT("M_Facade"))) Buildings->SetMaterial(0,Facade);
     auto* Glass = EnvironmentMaterial(TEXT("M_Glass"));
     if (Glass) GlassWalls->SetMaterial(0,Glass);
@@ -166,6 +166,21 @@ void ASkyway::OnConstruction(const FTransform& Transform)
     for (const auto& B : District.Buildings())
     {
         const double Base = NeonRide::FDistrict::TerraceZ;
+        if (B.Kind == NeonRide::EBuilding::ParkedCab) continue;
+        if (B.Kind != NeonRide::EBuilding::CityBlock)
+        {
+            const bool Market = B.Kind == NeonRide::EBuilding::MarketStall;
+            auto* Trim = Market ? MarketColour.Get() : TransitColour.Get();
+            const double Facing = Market ? (B.Y < -290 ? 1 : -1) : 1;
+            CityBox(Supports,B.X,B.Y,Base+0.54,FVector(B.WidthX,B.WidthY,1.08));
+            CityBox(Buildings,B.X,B.Y-Facing*(B.WidthY/2-0.18),Base+B.Height/2,FVector(B.WidthX,0.36,B.Height));
+            for (int Side : {-1,1})
+                CityBox(Supports,B.X+Side*(B.WidthX/2-0.17),B.Y+Facing*(B.WidthY/2-0.13),
+                    Base+B.Height/2,FVector(0.18,0.18,B.Height));
+            CityBox(Supports,B.X,B.Y,Base+B.Height,FVector(B.WidthX+1.2,B.WidthY+1.4,0.25));
+            CityBox(Trim,B.X,B.Y+Facing*(B.WidthY/2+0.74),Base+B.Height,FVector(B.WidthX+1.2,0.065,0.09));
+            continue;
+        }
         CityBox(Buildings, B.X, B.Y, Base + B.Height / 2, FVector(B.WidthX, B.WidthY, B.Height));
         auto* Trim = B.X < 320 && B.X > 55 ? MarketColour.Get() : TransitColour.Get();
         CityBox(Trim, B.X, B.Y, Base + B.Height - 1.0, FVector(B.WidthX + 0.6, B.WidthY + 0.6, 0.70));
@@ -186,4 +201,11 @@ void ASkyway::OnConstruction(const FTransform& Transform)
     CityBox(TransitColour, 637, -548, 26, FVector(2.0, 30, 1));
     for (int X = -120; X < 735; X += 12)
         CityBox(Markings, X, -556, NeonRide::FDistrict::TerraceZ + 0.02, FVector(4, 0.16, 0.04));
+    // Inlaid curbs lead from each ramp mouth to the streets and market promenade.
+    for (int Y = -685; Y < -252; Y += 12)
+        for (int X : {-73,-57,148,230,317,333})
+            CityBox(Markings,X,Y,NeonRide::FDistrict::TerraceZ+0.025,FVector(0.13,5.4,0.05));
+    for (int X = -118; X < 720; X += 12)
+        for (int Y : {-291,-371,-515,-600})
+            CityBox(Markings,X,Y,NeonRide::FDistrict::TerraceZ+0.025,FVector(4.4,0.14,0.05));
 }

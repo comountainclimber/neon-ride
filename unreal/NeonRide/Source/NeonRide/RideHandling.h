@@ -22,9 +22,10 @@ namespace NeonRide
         FPoint Position{0, 1.8, 0};
         EPlace Place = EPlace::Skyway;
         double Heading = 0.0; // radians; positive turns right
-        double Speed = CruiseSpeed;
+        double Speed = 0.0;
         double Acceleration = 0.0;
         double TurnRate = 0.0;
+        double Pitch = 0.0;
         double Roll = 0.0;
         double Odometer = 0.0;
         void Advance(const FDistrict& District, double Dt, double Throttle, double Brake, double Steer);

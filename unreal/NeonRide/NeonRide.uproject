@@ -2,7 +2,7 @@
   "FileVersion": 3,
   "EngineAssociation": "5.8",
   "Category": "Games",
-  "Description": "First-person skyway handling prototype",
+  "Description": "Free-roaming motorcycle and pedestrian exploration in the Neon Ride film district.",
   "Modules": [{ "Name": "NeonRide", "Type": "Runtime", "LoadingPhase": "Default" }],
   "Plugins": [{ "Name": "PythonScriptPlugin", "Enabled": true, "TargetAllowList": ["Editor"] }]
 }

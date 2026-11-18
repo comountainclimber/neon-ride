@@ -64,6 +64,16 @@ FDistrict::FDistrict()
             Blocks.push_back({double(X), double(Y), 40, 43, Height});
         }
     }
+    // A walkable shopping lane opens onto the foot of the market ramp.
+    for (int X : {160, 175, 190, 205, 220})
+        for (int Y : {-305,-279})
+            Blocks.push_back({double(X),double(Y),8.4,5.0,2.45,EBuilding::MarketStall});
+    // Platforms flank an open concourse beside the transit ramp.
+    for (int X : {-94,-35})
+        for (int Y : {-320,-365})
+            Blocks.push_back({double(X),double(Y),9,25,3.6,EBuilding::Station});
+    for (int Y : {-320,-365})
+        Blocks.push_back({-85.5,double(Y),2.2,4.6,1.8,EBuilding::ParkedCab});
 }
 
 FStreetPose FDistrict::TrafficAt(double Distance, double Lane) const
@@ -92,7 +102,7 @@ bool FDistrict::InsideBuilding(double X, double Y) const
 FGround FDistrict::Resolve(FPoint Candidate, FPoint Previous) const
 {
     double Best = std::numeric_limits<double>::max();
-    FGround Ground{Previous, EPlace::Skyway};
+    FGround Ground{Previous, EPlace::Skyway, false};
     for (const auto& S : Strips)
     {
         const double DX = Candidate.X - S.A.X, DY = Candidate.Y - S.A.Y;

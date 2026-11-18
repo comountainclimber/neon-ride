@@ -71,10 +71,14 @@ void ANeonRideHUD::DrawHUD()
         default: break;
     }
     const float X = 20 * Scale, Y = Canvas->ClipY - 79 * Scale;
-    DrawRect(Ink, X, Y, 315 * Scale, 59 * Scale);
-    DrawText(FString::Printf(TEXT("%s    %.0f km/h"), Place, Ride.Speed * 3.6), FLinearColor::White,
+    const bool Walking = Rider->IsWalking();
+    DrawRect(Ink, X, Y, 390 * Scale, 59 * Scale);
+    const FString Status = Walking ? FString::Printf(TEXT("%s    On foot"),Place) : FString::Printf(TEXT("%s    %.0f km/h"), Place, Ride.Speed * 3.6);
+    DrawText(Status, FLinearColor::White,
         X + 10 * Scale, Y + 5 * Scale, GEngine->GetMediumFont(), Scale);
-    DrawText(TEXT("M  map     Mouse  look     C  face forward"), Accent, X + 10 * Scale, Y + 32 * Scale, GEngine->GetSmallFont(), Scale);
+    const TCHAR* Help = Walking ? (Rider->CanMount() ? TEXT("WASD  walk     E  ride     M  map") : TEXT("WASD  walk     Mouse  look     M  find bike"))
+        : (Ride.Speed < 1.4 ? TEXT("W  ride     E  walk     M  map") : TEXT("S  brake     Mouse  look     M  map"));
+    DrawText(Help, Accent, X + 10 * Scale, Y + 32 * Scale, GEngine->GetSmallFont(), Scale);
     if (!Rider->IsMapOpen() || !Rider->GetSkyway()) return;
 
     const auto& District = Rider->GetSkyway()->GetDistrict();
@@ -109,6 +113,13 @@ void ANeonRideHUD::DrawHUD()
     Label(125, -300, TEXT("Lantern Market"));
     Label(530, -605, TEXT("The Overlook"));
     Label(15, 15, TEXT("Skyway"));
+    if (Walking)
+    {
+        const auto& Bike = Rider->GetParkedPosition();
+        const auto Pin = Project(Bike.X,Bike.Y);
+        DrawText(TEXT("Bike"),Accent,Pin.X+6*Scale,Pin.Y+7*Scale,GEngine->GetSmallFont(),Scale);
+        DrawRect(Accent,Pin.X-3*Scale,Pin.Y-3*Scale,6*Scale,6*Scale);
+    }
     const auto Here = Project(Ride.Position.X, Ride.Position.Y);
     DrawRect(FLinearColor::Yellow, Here.X - 4 * Scale, Here.Y - 4 * Scale, 8 * Scale, 8 * Scale);
     DrawLine(Here.X, Here.Y, Here.X + 20 * Scale * FMath::Cos(Ride.Heading),

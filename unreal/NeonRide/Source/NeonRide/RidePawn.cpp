@@ -3,12 +3,26 @@
 #include "TrafficVehicleActor.h"
 #include "FilmArt.h"
 #include "RideWeather.h"
+#include "NeonRideSave.h"
+#include "RideMenu.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Misc/App.h"
+#include "Widgets/Input/SButton.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+    const TCHAR* SaveSlot = TEXT("NeonRide_District");
+}
 
 ARidePawn::ARidePawn()
 {
@@ -53,7 +67,7 @@ void ARidePawn::BeginPlay()
             for (int Side : {-1,1})
             {
                 const FVector Grip(22.74, Side * 33.0, 97.55);
-                NeonRide::AttachFilmModel(Body, Glove, NeonRide::FilmTransform(Glove, Grip, FRotator(-84, Side * 9, 0), 42.14, Side < 0));
+                Gloves.Add(NeonRide::AttachFilmModel(Body, Glove, NeonRide::FilmTransform(Glove, Grip, FRotator(-84, Side * 9, 0), 42.14, Side < 0)));
             }
         }
     }
@@ -73,11 +87,17 @@ void ARidePawn::BeginPlay()
         if (Vehicle) Vehicle->Configure(Spec.Truck);
     }
     RestartRide();
+    bSaveEnabled = !FApp::IsUnattended() && GetWorld()->WorldType == EWorldType::Game;
+    if (bSaveEnabled && UGameplayStatics::DoesSaveGameExist(SaveSlot,0))
+        if (const auto* Save = Cast<UNeonRideSave>(UGameplayStatics::LoadGameFromSlot(SaveSlot,0)))
+            RestoreLocation(*Save);
     Weather->StartWeather();
 }
 
 void ARidePawn::EndPlay(const EEndPlayReason::Type Reason)
 {
+    if (IsValid(Skyway)) SaveLocation();
+    if (Menu.IsValid()) ClosePauseMenu();
     if (Reason == EEndPlayReason::Destroyed)
     {
         for (ATrafficVehicleActor* Vehicle : Vehicles)
@@ -101,16 +121,24 @@ void ARidePawn::SetupPlayerInputComponent(UInputComponent* Input)
     Input->BindAxis("LookStickX", this, &ARidePawn::LookStickX);
     Input->BindAxis("LookStickY", this, &ARidePawn::LookStickY);
     Input->BindAction("LookAhead", IE_Pressed, this, &ARidePawn::LookAhead);
+    Input->BindAction("MountBike", IE_Pressed, this, &ARidePawn::ToggleMount);
+    Input->BindAxis("WalkForward", this, &ARidePawn::SetWalkForward);
+    Input->BindAction("PauseRide", IE_Pressed, this, &ARidePawn::OpenPauseMenu);
 }
 
 void ARidePawn::SetThrottle(float Value) { Throttle = FMath::Clamp(Value, 0.f, 1.f); }
 void ARidePawn::SetBrake(float Value) { Brake = FMath::Clamp(Value, 0.f, 1.f); }
 void ARidePawn::SetSteer(float Value) { Steer = FMath::Clamp(Value, -1.f, 1.f); }
-void ARidePawn::LookX(float Delta) { LookYaw = FMath::Clamp(LookYaw + Delta * 1.5f, -145.f, 145.f); }
+void ARidePawn::LookX(float Delta)
+{
+    if (bWalking) Ride.Heading = FMath::UnwindRadians(Ride.Heading + FMath::DegreesToRadians(1.5 * Delta));
+    else LookYaw = FMath::Clamp(LookYaw + Delta * 1.5f,-145.f,145.f);
+}
 void ARidePawn::LookY(float Delta) { LookPitch = FMath::Clamp(LookPitch + Delta * 1.5f, -60.f, 70.f); }
 
 void ARidePawn::RestartRide()
 {
+    if (bWalking) ReattachBike();
     Ride = NeonRide::FRideState();
     LookAhead();
     StreetTraffic = NeonRide::FStreetTraffic();
@@ -120,12 +148,164 @@ void ARidePawn::RestartRide()
     UpdateTraffic();
 }
 
+bool ARidePawn::CanMount() const
+{
+    const auto& A = Ride.Position;
+    const auto& B = ParkedRide.Position;
+    return FVector(A.X-B.X,A.Y-B.Y,A.Z-B.Z).SizeSquared() <= 3.6*3.6;
+}
+
+void ARidePawn::ReattachBike()
+{
+    Body->AttachToComponent(RootComponent,FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    for (USceneComponent* Glove : Gloves) Glove->SetVisibility(true);
+    bWalking = false;
+}
+
+void ARidePawn::ToggleMount()
+{
+    if (!Skyway) return;
+    if (bWalking)
+    {
+        if (!CanMount()) return;
+        ReattachBike();
+        Ride = ParkedRide;
+    }
+    else
+    {
+        if (Ride.Speed > 1.4) return;
+        Ride.Speed = Ride.Acceleration = Ride.TurnRate = Ride.Roll = 0.0;
+        UpdatePose();
+        ParkedRide = Ride;
+        Body->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+        for (USceneComponent* Glove : Gloves) Glove->SetVisibility(false);
+        bWalking = true;
+        const auto Here = Ride.Position;
+        const NeonRide::FPoint Beside{Here.X+1.35*FMath::Sin(Ride.Heading),Here.Y-1.35*FMath::Cos(Ride.Heading),Here.Z};
+        Ride.Position = Skyway->GetDistrict().Resolve(Beside,Here).Point;
+    }
+    LookAhead();
+    UpdatePose();
+    SaveLocation();
+}
+
+void ARidePawn::CaptureLocation(UNeonRideSave& Save) const
+{
+    const auto& Bike = bWalking ? ParkedRide : Ride;
+    Save.BikePosition = FVector(Bike.Position.X,Bike.Position.Y,Bike.Position.Z);
+    Save.BikeHeading = Bike.Heading;
+    Save.bOnFoot = bWalking;
+    Save.FootPosition = FVector(Ride.Position.X,Ride.Position.Y,Ride.Position.Z);
+    Save.FootHeading = Ride.Heading;
+}
+
+bool ARidePawn::RestoreLocation(const UNeonRideSave& Save)
+{
+    if (!Skyway || Save.Version != 1) return false;
+    auto ReadPose = [&](FVector Position,double Heading,NeonRide::FRideState& State)
+    {
+        if (Position.ContainsNaN() || !FMath::IsFinite(Heading) || FMath::Abs(Heading)>2*PI) return false;
+        if (Position.Z < -28.5 && Skyway->GetDistrict().InsideBuilding(Position.X,Position.Y)) return false;
+        NeonRide::FPoint Point{Position.X,Position.Y,Position.Z};
+        const auto Ground = Skyway->GetDistrict().Resolve(Point,Point);
+        const auto& P = Ground.Point;
+        if (!Ground.bOnSurface || !Position.Equals(FVector(P.X,P.Y,P.Z),0.35)) return false;
+        State = NeonRide::FRideState();
+        State.Position = P;
+        State.Heading = FMath::UnwindRadians(Heading);
+        State.Place = Ground.Place;
+        return true;
+    };
+    NeonRide::FRideState Bike, Foot;
+    if (!ReadPose(Save.BikePosition,Save.BikeHeading,Bike)) return false;
+    if (Save.bOnFoot && !ReadPose(Save.FootPosition,Save.FootHeading,Foot)) return false;
+    if (bWalking) ReattachBike();
+    Ride = Bike;
+    LookAhead();
+    UpdatePose();
+    if (Save.bOnFoot)
+    {
+        ParkedRide = Bike;
+        Body->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+        for (USceneComponent* Glove : Gloves) Glove->SetVisibility(false);
+        bWalking = true;
+        Ride = Foot;
+        UpdatePose();
+    }
+    return true;
+}
+
+bool ARidePawn::SaveLocation() const
+{
+    if (!bSaveEnabled) return true;
+    auto* Save = CastChecked<UNeonRideSave>(UGameplayStatics::CreateSaveGameObject(UNeonRideSave::StaticClass()));
+    CaptureLocation(*Save);
+    return UGameplayStatics::SaveGameToSlot(Save,SaveSlot,0);
+}
+
+void ARidePawn::OpenPauseMenu()
+{
+    auto* PC = Cast<APlayerController>(Controller);
+    auto* View = GetWorld()->GetGameViewport();
+    if (!PC || !View || Menu.IsValid() || !PC->SetPause(true)) return;
+    Menu = SNew(SRideMenu).Rider(this);
+    View->AddViewportWidgetContent(Menu.ToSharedRef(),100);
+    FInputModeUIOnly Input;
+    Input.SetWidgetToFocus(Menu->ResumeButton);
+    PC->SetInputMode(Input);
+    PC->bShowMouseCursor = true;
+    SaveLocation();
+}
+
+void ARidePawn::ClosePauseMenu()
+{
+    if (!Menu.IsValid()) return;
+    if (auto* View = GetWorld()->GetGameViewport()) View->RemoveViewportWidgetContent(Menu.ToSharedRef());
+    Menu.Reset();
+    if (auto* PC = Cast<APlayerController>(Controller))
+    {
+        PC->SetPause(false);
+        PC->SetInputMode(FInputModeGameOnly());
+        PC->bShowMouseCursor = false;
+    }
+}
+
+void ARidePawn::ReturnFromMenu()
+{
+    ClosePauseMenu();
+    RestartRide();
+    SaveLocation();
+}
+
+void ARidePawn::QuitFromMenu()
+{
+    if (SaveLocation())
+        UKismetSystemLibrary::QuitGame(this,Cast<APlayerController>(Controller),EQuitPreference::Quit,false);
+    else if (GEngine)
+        GEngine->AddOnScreenDebugMessage(-1,8.f,FColor::Orange,TEXT("Could not save the current location. Check free disk space and try again."));
+}
+
+void ARidePawn::Walk(double Step)
+{
+    const FVector2D Input = FVector2D(WalkForward,Steer).GetClampedToMaxSize(1.0);
+    const double C = FMath::Cos(Ride.Heading), S = FMath::Sin(Ride.Heading);
+    const double Distance = 3.5 * Step;
+    const auto Here = Ride.Position;
+    const NeonRide::FPoint Target{Here.X+Distance*(C*Input.X-S*Input.Y),Here.Y+Distance*(S*Input.X+C*Input.Y),Here.Z};
+    const auto Ground = Skyway->GetDistrict().Resolve(Target,Here);
+    if (!StreetTraffic.Touches(Ground.Point) || StreetTraffic.Touches(Here))
+    {
+        Ride.Position = Ground.Point;
+        Ride.Place = Ground.Place;
+    }
+}
+
 void ARidePawn::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
     if (!Skyway) return;
     constexpr double Step = 1.0 / 120.0;
-    LookYaw = FMath::Clamp(LookYaw + float(LookStick.X) * DeltaSeconds * 105.f, -145.f, 145.f);
+    LookX(float(LookStick.X) * DeltaSeconds * 70.f);
     LookPitch = FMath::Clamp(LookPitch + float(LookStick.Y) * DeltaSeconds * 80.f, -60.f, 70.f);
     Remainder += FMath::Min(double(DeltaSeconds), 0.25);
     while (Remainder >= Step)
@@ -133,6 +313,12 @@ void ARidePawn::Tick(float DeltaSeconds)
         const NeonRide::FPoint Previous = Ride.Position;
         const double PreviousOdometer = Ride.Odometer;
         StreetTraffic.Advance(Skyway->GetDistrict(), Ride, Step);
+        if (bWalking)
+        {
+            Walk(Step);
+            Remainder -= Step;
+            continue;
+        }
         Ride.Advance(Skyway->GetDistrict(), Step, Throttle, Brake, Steer);
         // A vehicle contact sheds speed and leaves the rider in the same district.
         if (StreetTraffic.Touches(Ride.Position) && !StreetTraffic.Touches(Previous))
@@ -145,7 +331,7 @@ void ARidePawn::Tick(float DeltaSeconds)
     }
     UpdatePose();
     UpdateTraffic();
-    Weather->UpdateWeather(DeltaSeconds, Ride.Speed, Throttle);
+    Weather->UpdateWeather(DeltaSeconds, Ride.Speed, bWalking ? 0.0 : Throttle, bWalking);
 }
 
 void ARidePawn::UpdateTraffic()
@@ -167,7 +353,15 @@ void ARidePawn::UpdatePose()
     if (!Skyway) return;
     const FTransform Frame = Skyway->GetActorTransform();
     const FVector Position = Frame.TransformPosition(FVector(Ride.Position.X, Ride.Position.Y, Ride.Position.Z) * 100.0);
-    SetActorLocationAndRotation(Position, Frame.GetRotation() * FRotator(0, FMath::RadiansToDegrees(Ride.Heading), 0).Quaternion());
+    if (bWalking)
+    {
+        SetActorLocationAndRotation(Position,Frame.GetRotation() * FRotator(0,FMath::RadiansToDegrees(Ride.Heading),0).Quaternion());
+        Camera->SetRelativeLocation(FVector(0,0,168));
+        Camera->SetRelativeRotation(FRotator(LookPitch,0,0));
+        Camera->SetFieldOfView(85.f);
+        return;
+    }
+    SetActorLocationAndRotation(Position, Frame.GetRotation() * FRotator(Ride.Pitch, FMath::RadiansToDegrees(Ride.Heading), 0).Quaternion());
 
     Body->SetRelativeRotation(FRotator(0, 0, Ride.Roll));
     const double RollRadians = FMath::DegreesToRadians(Ride.Roll);

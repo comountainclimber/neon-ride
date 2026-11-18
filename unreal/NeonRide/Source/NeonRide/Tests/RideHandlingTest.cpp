@@ -1,5 +1,6 @@
 #include "RideHandling.h"
 #include "TrafficRun.h"
+#include <cmath>
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
@@ -25,6 +26,7 @@ bool FNeonRideHandling::RunTest(const FString& Parameters)
     TestTrue(TEXT("Buildings block the street-level bike"), District.Resolve({395,-185,-30}, Under).Point.Y != -185
         || District.Resolve({395,-185,-30}, Under).Point.X != 395);
     FRideState Rider;
+    Rider.Speed = CruiseSpeed;
     for (int I = 0; I < 300; ++I) Rider.Advance(District, 1.0 / 120, 0, 1, 0);
     TestEqual(TEXT("Braking stops the bike"), Rider.Speed, 0.0);
     const FPoint Parked = Rider.Position;

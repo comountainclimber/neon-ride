@@ -16,6 +16,11 @@ void NeonRide::FRideState::Advance(const FDistrict& District, double Dt, double 
     const auto Ground = District.Resolve(Desired, Position);
     const double Actual = std::hypot(Ground.Point.X - Position.X, Ground.Point.Y - Position.Y);
     if (Actual + 0.001 < Travel) Speed = std::min(Speed, Actual / Dt);
+    if (Actual > 0.001)
+    {
+        const double Grade = std::atan2(Ground.Point.Z - Position.Z, Actual) * 180.0 / std::numbers::pi;
+        Pitch = std::lerp(Pitch, std::clamp(Grade, -14.0, 14.0), 1.0 - std::exp(-6.0 * Dt));
+    }
     Odometer += Actual;
     Position = Ground.Point;
     Place = Ground.Place;

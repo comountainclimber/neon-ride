@@ -49,12 +49,12 @@ void URideWeather::StartWeather()
     UpdateWeather(0.f,0,0);
 }
 
-void URideWeather::UpdateWeather(float DeltaSeconds, double Speed, double Throttle)
+void URideWeather::UpdateWeather(float DeltaSeconds, double Speed, double Throttle, bool bWalking)
 {
     if (EngineLoop)
     {
         EngineLoop->SetPitchMultiplier(0.68 + 0.019 * Speed);
-        EngineLoop->SetVolumeMultiplier(0.10 + 0.08 * Throttle);
+        EngineLoop->SetVolumeMultiplier(bWalking ? 0.f : 0.10 + 0.08 * Throttle);
     }
     if (WindLoop) WindLoop->SetVolumeMultiplier(0.018 + 0.15 * FMath::Square(Speed / 56.0));
     if (!Rain) return;

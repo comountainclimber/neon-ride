@@ -14,8 +14,9 @@ namespace NeonRide
         bool bRoad;
         double Length, ForwardX, ForwardY;
     };
-    struct FBuilding { double X, Y, WidthX, WidthY, Height; };
-    struct FGround { FPoint Point; EPlace Place; };
+    enum class EBuilding { CityBlock, MarketStall, Station, ParkedCab };
+    struct FBuilding { double X, Y, WidthX, WidthY, Height; EBuilding Kind = EBuilding::CityBlock; };
+    struct FGround { FPoint Point; EPlace Place; bool bOnSurface = true; };
     struct FStreetPose { FPoint Point; double Yaw, Pitch, Bank; };
 
     class FDistrict
@@ -24,6 +25,7 @@ namespace NeonRide
         FDistrict();
         FGround Resolve(FPoint Candidate, FPoint Previous) const;
         FStreetPose TrafficAt(double Distance, double Lane) const;
+        bool InsideBuilding(double X, double Y) const;
         const std::vector<FSurface>& Surfaces() const { return Strips; }
         const std::vector<FBuilding>& Buildings() const { return Blocks; }
         static constexpr double TerraceZ = -30.0;
@@ -34,6 +36,5 @@ namespace NeonRide
         std::vector<FSurface> TrafficLoop;
         std::vector<double> TrafficEnds;
         void AddStrip(FPoint A, FPoint B, double Width, EPlace Place, bool bRoad, double Bank = 0.0);
-        bool InsideBuilding(double X, double Y) const;
     };
 }

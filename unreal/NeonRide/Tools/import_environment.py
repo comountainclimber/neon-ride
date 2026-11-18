@@ -2,6 +2,7 @@
 from pathlib import Path
 import os
 import unreal as ue
+from hologram_mesh import build_jellyfish
 
 
 def build_environment(source):
@@ -45,10 +46,15 @@ def build_environment(source):
         return mat
 
     def wire(a, b, pin, channel=""):
-        assert lib.connect_material_expressions(a, channel, b, pin)
+        input_pin = "" if pin in ("Input", "Coordinates") else pin
+        assert lib.connect_material_expressions(a, "" if channel == "RGB" else channel, b, input_pin), (a,b,pin)
     def output(a, prop, channel=""):
-        assert lib.connect_material_property(a, channel, prop)
+        assert lib.connect_material_property(a, "" if channel == "RGB" else channel, prop), prop
     mp = ue.MaterialProperty
+    def named_input(name):
+        pin = ue.CustomInput()
+        pin.set_editor_property("input_name",name)
+        return pin
 
     def surface(texture, walls):
         def build(mat, node):
@@ -85,6 +91,26 @@ def build_environment(source):
     facade = import_file("textures/facade-tower.png","T_Facade")
     make("M_WetDeck", surface(deck, False))
     make("M_Facade", surface(facade, True))
+    def asphalt(mat,node):
+        world = node(ue.MaterialExpressionWorldPosition,-780,0)
+        xy = node(ue.MaterialExpressionComponentMask,-620,0,r=True,g=True,b=False,a=False)
+        wire(world,xy,"Input")
+        uv = node(ue.MaterialExpressionDivide,-410,0,const_b=470.)
+        wire(xy,uv,"A")
+        tex = node(ue.MaterialExpressionTextureSample,-220,0,texture=deck)
+        wire(uv,tex,"Coordinates")
+        tint = node(ue.MaterialExpressionConstant3Vector,-220,180,constant=ue.LinearColor(.035,.044,.059,1))
+        colour = node(ue.MaterialExpressionAdd,0,0)
+        wire(tex,colour,"A"); wire(tint,colour,"B"); output(colour,mp.MP_BASE_COLOR)
+        rough = node(ue.MaterialExpressionCustom,-120,300,inputs=[named_input("XY")],
+                     output_type=ue.CustomMaterialOutputType.CMOT_FLOAT1,
+                     code="""float2 p=XY*.0014;
+float pools=sin(p.x*1.7+.65*sin(p.y*1.9))+sin(p.y*.77+p.x*.32)+.42*sin(p.x*4.8+p.y*1.2);
+return lerp(.235,.53,smoothstep(-.65,.85,pools));""")
+        wire(xy,rough,"XY"); output(rough,mp.MP_ROUGHNESS)
+        metal = node(ue.MaterialExpressionConstant,-80,480,r=.08)
+        output(metal,mp.MP_METALLIC)
+    make("M_RainAsphalt",asphalt)
 
     def glow(mat, node):
         mat.set_editor_property("shading_model",ue.MaterialShadingModel.MSM_UNLIT)
@@ -119,7 +145,54 @@ def build_environment(source):
         make(f"M_Glyph{i}",panel(image,tint,3.2))
     for letter in ("a","b"):
         image = import_file(f"textures/skyline-{letter}.png",f"T_Skyline_{letter}")
-        make(f"M_Skyline_{letter}",panel(image,(0.68,0.75,0.95),0.65))
+        def skyline(mat,node):
+            mat.set_editor_property("shading_model",ue.MaterialShadingModel.MSM_UNLIT)
+            mat.set_editor_property("blend_mode",ue.BlendMode.BLEND_ADDITIVE)
+            mat.set_editor_property("two_sided",True)
+            uv = node(ue.MaterialExpressionTextureCoordinate,-680,0)
+            paint = node(ue.MaterialExpressionTextureSample,-450,0,texture=image)
+            feather = node(ue.MaterialExpressionCustom,-420,200,
+                           inputs=[named_input("UV")],
+                           output_type=ue.CustomMaterialOutputType.CMOT_FLOAT1,
+                           code="return smoothstep(0.,.16,min(UV.x,1.-UV.x))*smoothstep(0.,.19,min(UV.y,1.-UV.y))*.21;")
+            wire(uv,feather,"UV")
+            faded = node(ue.MaterialExpressionMultiply,-80,0)
+            wire(paint,faded,"A"); wire(feather,faded,"B")
+            output(faded,mp.MP_EMISSIVE_COLOR)
+        make(f"M_Horizon_{letter}",skyline)
+
+    def hologram(mat,node):
+        mat.set_editor_property("shading_model",ue.MaterialShadingModel.MSM_UNLIT)
+        colour = node(ue.MaterialExpressionVertexColor,-450,0)
+        light = node(ue.MaterialExpressionMultiply,-160,0,const_b=3.7)
+        wire(colour,light,"A"); output(light,mp.MP_EMISSIVE_COLOR)
+        pos = node(ue.MaterialExpressionPreSkinnedPosition,-500,200)
+        clock = node(ue.MaterialExpressionTime,-500,300)
+        motion = node(ue.MaterialExpressionCustom,-130,225,
+                      inputs=[named_input("P"),named_input("Clock")],
+                      output_type=ue.CustomMaterialOutputType.CMOT_FLOAT3, code="""
+float depth=saturate(-P.z/7900.);
+float pulse=.5+.5*sin(Clock*.92-depth*2.);
+float rim=saturate(1.-P.z/2100.);
+float2 sway=float2(sin(Clock*.51+depth*5.),cos(Clock*.41+depth*7.))*330.*depth;
+return float3(-P.xy*rim*.13*pulse+sway, (1.-rim*2.)*125.*pulse+75.*sin(Clock*.43));""")
+        wire(pos,motion,"P"); wire(clock,motion,"Clock"); output(motion,mp.MP_WORLD_POSITION_OFFSET)
+    make("M_Hologram",hologram)
+    mesh_path = folder+"/SM_Hologram"
+    if not assets.does_asset_exist(mesh_path):
+        intermediate = Path(ue.Paths.convert_relative_path_to_full(ue.Paths.project_intermediate_dir()))
+        intermediate.mkdir(parents=True,exist_ok=True)
+        file = intermediate/"SM_Hologram.glb"
+        build_jellyfish(file)
+        task = ue.AssetImportTask()
+        task.filename,task.destination_path = str(file),folder
+        task.automated,task.save = True,True
+        tools.import_asset_tasks([task])
+        mesh, = [obj for obj in task.get_objects() if isinstance(obj,ue.StaticMesh)]
+        if mesh.get_path_name().split(".")[0] != mesh_path:
+            assert assets.rename_loaded_asset(mesh,mesh_path)
+        mesh.set_material(0,assets.load_asset(folder+"/M_Hologram"))
+        assert assets.save_loaded_asset(mesh,False)
     for file, name in (("rain","A_Rain"),("wind_woosh_loop","A_Wind"),("engineCircular_000","A_Engine")):
         sound = import_file(f"audio/wav/{file}.wav",name)
         sound.set_editor_property("looping",True)
