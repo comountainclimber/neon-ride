@@ -53,7 +53,7 @@ void SRideMenu::Construct(const FArguments &Args)
     Actions->AddSlot().AutoHeight()[ResumeButton.ToSharedRef()];
     Actions->AddSlot().AutoHeight().Padding(
         0, 5, 0, 0)[Button(TEXT("Controls"), false, FOnClicked::CreateSP(this, &SRideMenu::ToggleHelp))];
-    if (!Opening)
+    if (!Opening && Rider.IsValid() && !Rider->GetRide().foot.active && Rider->GetRide().crashAge<0.)
         Actions->AddSlot().AutoHeight().Padding(
             0, 5, 0,
             0)[Button(TEXT("Return to Rainline"), false, FOnClicked::CreateSP(this, &SRideMenu::ReturnToEntrance))];
@@ -67,7 +67,8 @@ void SRideMenu::Construct(const FArguments &Args)
                          TEXT("Shift   or X / Square   Nitro\n")
                          TEXT("Mouse   or right stick  Look\n")
                          TEXT("M / Tab or D-pad up    Dispatch map\n")
-                         TEXT("E or bottom face       Parcel handoff");
+                         TEXT("E or bottom face       Handoff / remount\n")
+                         TEXT("WASD or left stick     Walk after a crash");
 
     TSharedRef<SHorizontalBox> Wordmark = SNew(SHorizontalBox);
     Wordmark->AddSlot().AutoWidth()[Label(TEXT("NEON "), Display, Ivory)];

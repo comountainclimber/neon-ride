@@ -39,6 +39,7 @@ class ARidePawn : public APawn
     int TrackedStop() const;
     bool ReserveParcel(int Job);
     bool ServiceParcel(int Job);
+    void UseAtBike();
     void TrackParcel(int Job);
     void MarkAddress(int Address);
     void FinishShift();
@@ -83,6 +84,8 @@ class ARidePawn : public APawn
     void Notify(const FString& Message);
     bool bBoost = false, bSaveEnabled = false, bTitlePending = false;
     double Remainder = 0, Throttle = 0, Brake = 0, Steer = 0;
+    double FootForward=0., FootYawDelta=0.;
+    void SetFootForward(float Value) { FootForward=FMath::Clamp(Value,-1.f,1.f); }
     float LookYaw = 0, LookPitch = 0;
     FVector2D LookStick = FVector2D::ZeroVector;
     TSharedPtr<SRideMenu> Menu;
@@ -108,7 +111,8 @@ class ARidePawn : public APawn
     }
     void LookX(float Value)
     {
-        LookYaw = FMath::Clamp(LookYaw + 1.5f * Value, -140.f, 140.f);
+        if(Ride.foot.active) FootYawDelta+=FMath::DegreesToRadians(1.5*Value);
+        else LookYaw = FMath::Clamp(LookYaw + 1.5f * Value, -140.f, 140.f);
     }
     void LookY(float Value)
     {
@@ -127,6 +131,7 @@ class ARidePawn : public APawn
         LookYaw = LookPitch = 0;
     }
     void RestartRide();
+    void RestartInput();
     void OpenPauseMenu() { OpenMenu(false); }
     void OpenMenu(bool Opening);
     bool SaveLocation() const;

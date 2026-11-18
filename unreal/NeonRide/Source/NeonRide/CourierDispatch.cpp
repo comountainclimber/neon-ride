@@ -103,10 +103,12 @@ class SCourierMap : public SLeafWidget
                 Geo.ToPaintGeometry(FVector2f(16, 16), FSlateLayoutTransform(FVector2f(P - FVector2D(3.5, 7.5)))),
                 FText::AsNumber(Id + 1), Font, ESlateDrawEffect::None, Aim ? Ink : Paper);
         }
-        const auto F = Circuit::At(Rider->GetRide().s, Rider->GetRide().lateral);
+        const auto &Ride = Rider->GetRide();
+        const auto F =
+            Ride.foot.active ? Circuit::At(Ride.foot.s, Ride.foot.lateral) : Circuit::At(Ride.s, Ride.lateral);
         const FVector2D P = Pixel({F.x, F.y});
         TArray<FVector2f> Arrow;
-        const double Heading = F.yaw + Rider->GetRide().headingError;
+        const double Heading = Ride.foot.active ? Ride.foot.yaw : F.yaw + Ride.headingError;
         for (FVector2D Local :
              {FVector2D(9, 0), FVector2D(-5, 4), FVector2D(-3, 0), FVector2D(-5, -4), FVector2D(9, 0)})
         {

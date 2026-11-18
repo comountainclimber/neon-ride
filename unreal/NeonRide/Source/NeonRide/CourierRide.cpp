@@ -80,7 +80,7 @@ bool ARidePawn::ReserveParcel(int Job)
 }
 bool ARidePawn::ServiceParcel(int Job)
 {
-    if (Job < 0 || Job >= Courier::JobCount)
+    if (Job < 0 || Job >= Courier::JobCount || Ride.foot.active || Ride.crashAge >= 0.)
         return false;
     const bool WasOpen = Courier::RampOpen(Shift);
     if (!Courier::Handoff(Shift, Ride, Job))

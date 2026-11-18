@@ -46,7 +46,7 @@ export function createCityMap(canvas, circuit, network, selectStop) {
     }
     // Trace only the player-to-stop segment of each road on the selected route.
     const end = network.stops.find(stop=>stop.id===target);
-    if(end&&route?.via?.length){
+    if(end&&route?.meters>=1&&route?.via?.length){
       ctx.strokeStyle='#bbf7d7';ctx.lineWidth=3;ctx.setLineDash([4,5]);
       route.via.forEach((id,index)=>{
         const street=streets.find(item=>item.road.id===id);

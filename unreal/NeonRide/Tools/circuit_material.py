@@ -95,6 +95,24 @@ return tint*lerp(.082,frame.x*frame.y*value,fade)*saturate(1.-abs(N.z));""")
         output(glow, ue.MaterialProperty.MP_EMISSIVE_COLOR)
     make("M_CircuitInfill", midrise)
 
+    def canal(mat, node):
+        position = node(ue.MaterialExpressionWorldPosition, -620, 60)
+        time = node(ue.MaterialExpressionTime, -620, 200)
+        wave = node(ue.MaterialExpressionCustom, -300, 120, inputs=[named_input("P"), named_input("T")],
+                    output_type=ue.CustomMaterialOutputType.CMOT_FLOAT3, code="""
+float2 p=P.xy*.01;
+float swell=sin(dot(p,float2(.38,.64))+T*1.1);
+float chop=sin(dot(p,float2(.43,3.23))+T*2.+swell);
+return normalize(float3(.19*(.68*swell+.32*chop),.11*cos(.77*p.x+1.3*T)+.058*sin(5.8*p.y+2.5*T),1.));""")
+        wire(position, wave, "P")
+        wire(time, wave, "T")
+        output(wave, ue.MaterialProperty.MP_NORMAL)
+        tint = node(ue.MaterialExpressionConstant3Vector, -240, -120, constant=ue.LinearColor(.012,.065,.077,1.))
+        output(tint, ue.MaterialProperty.MP_BASE_COLOR)
+        output(node(ue.MaterialExpressionConstant, -230, -40, r=.14), ue.MaterialProperty.MP_ROUGHNESS)
+        output(node(ue.MaterialExpressionConstant, -230, 30, r=.32), ue.MaterialProperty.MP_METALLIC)
+    make("M_CourierCanal", canal)
+
 
     def mirror(mat, node):
         mat.set_editor_property("shading_model", ue.MaterialShadingModel.MSM_UNLIT)

@@ -14,7 +14,7 @@ export function instruments(bike){
   const screwGeo=new T.CylinderGeometry(.0028,.0028,.0015,8),screwMat=new T.MeshStandardMaterial({color:0x67737a,metalness:.83,roughness:.3});
   for(const side of [-1,1]){const screw=new T.Mesh(screwGeo,screwMat);screw.position.set(side*.158,0,.009);screw.rotation.x=Math.PI*.5;panel.add(screw);}
   let prev='';
-  return {update(p){
+  return {panel,update(p){
     const speed=Math.round(3.6*p.v),charge=Math.round(p.charge*100),rpm=Math.round(p.rpm*18);
     const next=[speed,charge,rpm,p.gear,p.boost].join('/');if(next===prev)return;prev=next;
     const tint=p.boost?'#ffc281':'#98f2db';

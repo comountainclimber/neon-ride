@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b0c16"><title>Neon Ride — Midnight Circuit</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b0c16"><title>Neon Ride — Night Courier</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%230d141d'/%3E%3Cpath d='M5 29l9-18h6l-9 18zm10 0l9-18h6l-9 18zm10 0l9-18h4l-9 18z' fill='%23a1ffdc'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./circuit.css"><link rel="stylesheet" href="./touch-controls.css"><link rel="stylesheet" href="./courier.css"><script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script></head>
 <body data-screen="title">
-<canvas id="world" aria-label="Three-dimensional motorcycle cockpit on the Midnight Circuit" tabindex="0"></canvas>
+<canvas id="world" aria-label="Motorcycle cockpit on the night courier routes" tabindex="0"></canvas>
 <div id="cover" aria-hidden="true"><div class="film-frame"></div><img class="vesper-portrait" src="./assets/visual/vesper-title.webp" alt="" fetchpriority="high"><div class="film-shade"></div></div>
 <header><a id="brand" href="#" aria-label="Neon Ride menu"><i class="mark" aria-hidden="true"><b></b><b></b><b></b></i><span>NEON RIDE</span></a>
 <div class="actions"><button id="sound" aria-label="Turn sound off" title="Sound" aria-pressed="true">♪ <span>Sound on</span></button><button id="fullscreen" title="Fullscreen" aria-label="Enter fullscreen">⛶</button><button id="pauser" class="playOnly" aria-label="Pause game">Ⅱ</button></div></header>
 <main id="intro">
-  <div class="title-lockup"><p class="overline"><i></i>Midnight Circuit</p><h1>NEON <em>RIDE</em></h1>
-  <p class="route-summary">Night courier <span>/</span> Six addresses <span>/</span> Two panniers</p>
+  <div class="title-lockup"><p class="overline"><i></i>Night Courier</p><h1>NEON <em>RIDE</em></h1>
+  <p class="route-summary">Inez has a film reel for Aurora. Take the night shift.</p>
   <div class="title-actions"><button id="enter" class="primary" disabled>Loading circuit <span id="progress">0%</span></button><button id="how" class="quiet">Controls <i aria-hidden="true">↗</i></button></div>
   <div id="error" role="alert"></div></div>
-  <div class="rider-credit"><i aria-hidden="true"></i><div><strong>Vesper</strong><span>Test rider</span></div></div>
+  <div class="rider-credit"><i aria-hidden="true"></i><div><strong>Vesper</strong><span>Courier · Former test rider</span></div></div>
 </main>
 <aside id="route" class="playOnly" aria-label="Courier navigation">
   <div class="nav-eyebrow"><span id="navPhase">City navigation</span><button id="openDesk" aria-label="Open city map and dispatch">City map <kbd>M</kbd></button></div>
@@ -20,6 +20,11 @@
   <div class="routeLine"><i id="meter"></i></div><div class="routeFoot"><span id="navHint"></span><span id="lap"></span></div>
   <button id="bayAction" hidden></button>
 </aside>
+<aside id="recovery" hidden aria-label="Motorcycle recovery">
+  <div class="recovery-location"><i id="bikeBearing" aria-hidden="true">▲</i><div><small>On foot</small><strong>Your motorcycle</strong></div><span id="bikeDistance"></span></div>
+  <p id="walkHint"></p><button id="remount" type="button" hidden>Remount bike</button>
+</aside>
+<div id="walkTouch" aria-label="Touch walking controls"><div id="walkPad" aria-label="Slide to walk in any direction" role="group"><span>Walk</span><i aria-hidden="true"></i></div></div>
 <div id="notice" role="status"></div><output id="telemetry" class="sr"></output>
 <section id="touch" class="playOnly" aria-label="Touch driving controls">
   <div data-steering role="slider" tabindex="0" aria-label="Steering" aria-orientation="horizontal" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Centered">
@@ -32,9 +37,9 @@
   </section>
 </section>
 <dialog id="menu" aria-labelledby="pause-title">
-  <div class="dialogTop"><span>Midnight Circuit</span><button data-close aria-label="Close pause menu">×</button></div>
+  <div class="dialogTop"><span>Night Courier</span><button data-close aria-label="Close pause menu">×</button></div>
   <div class="pause-art" aria-hidden="true"></div>
-  <div class="dialog-content"><h2 id="pause-title">Paused.</h2><button class="primary" id="resume">Resume ride <b aria-hidden="true">→</b></button>
+  <div class="dialog-content"><h2 id="pause-title">Shift paused.</h2><button class="primary" id="resume">Resume ride <b aria-hidden="true">→</b></button>
   <div class="touch-settings">
     <fieldset id="steering-hand"><legend>Steering thumb</legend><label><input name="steer-side" type="radio" value="left" checked><span>Left</span></label><label><input name="steer-side" type="radio" value="right"><span>Right</span></label></fieldset>
     <fieldset id="render-quality"><legend>Resolution</legend><label><input name="render-quality" type="radio" value="balanced" checked><span>Balanced</span></label><label><input name="render-quality" type="radio" value="high"><span>High</span></label></fieldset>
@@ -52,12 +57,12 @@
   <p id="dispatchMessage" role="status"></p>
 </dialog>
 <dialog id="help" aria-labelledby="controls-title">
-  <div class="dialogTop"><span>Midnight Circuit</span><button data-close aria-label="Close controls">×</button></div>
+  <div class="dialogTop"><span>Night Courier</span><button data-close aria-label="Close controls">×</button></div>
   <div class="dialog-content"><h2 id="controls-title">Controls.</h2>
   <div class="control-picker" aria-label="Control scheme"><button aria-pressed="true" data-scheme="keys">Keyboard</button><button aria-pressed="false" data-scheme="pad">Controller</button><button aria-pressed="false" data-scheme="touch">Touch</button></div>
-  <dl data-layout="keys"><div><dt>Throttle / brake</dt><dd>W / S <small>or</small> ↑ / ↓</dd></div><div><dt>Steer left / right</dt><dd>A / D <small>or</small> ← / →</dd></div><div><dt>Nitro boost</dt><dd>Hold Shift</dd></div><div><dt>Look around</dt><dd>Drag</dd></div><div><dt>Face forward</dt><dd>C</dd></div><div><dt>City map / bay handoff</dt><dd>M / E</dd></div><div><dt>Return to Rainline</dt><dd>R</dd></div><div><dt>Pause</dt><dd>Esc / P</dd></div></dl>
-  <dl data-layout="pad" hidden><div><dt>Throttle / brake</dt><dd>RT / LT</dd></div><div><dt>Steer / look</dt><dd>Left / right stick</dd></div><div><dt>Face forward</dt><dd>Click right stick</dd></div><div><dt>Nitro boost</dt><dd>X / Square</dd></div><div><dt>City map / bay handoff</dt><dd>View / A (Cross)</dd></div><div><dt>Dispatch selection</dt><dd>D-pad / A (Cross)</dd></div><div><dt>Return to Rainline</dt><dd>Y / Triangle</dd></div><div><dt>Pause</dt><dd>Menu</dd></div></dl>
-  <dl data-layout="touch" hidden><div><dt>Turn</dt><dd>Slide the steering pad</dd></div><div><dt>Hold your heading</dt><dd>Release the pad</dd></div><div><dt>Accelerate / slow down</dt><dd>Hold throttle / brake</dd></div><div><dt>Accelerate with nitro</dt><dd>Hold Nitro</dd></div><div><dt>Look around</dt><dd>Drag the road</dd></div><div><dt>Face forward</dt><dd>Double-tap the road</dd></div><div><dt>Dispatch / handoff</dt><dd>City map / bay button</dd></div></dl>
+  <dl data-layout="keys"><div><dt>Throttle / brake</dt><dd>W / S <small>or</small> ↑ / ↓</dd></div><div><dt>Steer left / right</dt><dd>A / D <small>or</small> ← / →</dd></div><div><dt>Nitro boost</dt><dd>Hold Shift</dd></div><div><dt>Look around</dt><dd>Drag</dd></div><div><dt>Face forward</dt><dd>C</dd></div><div><dt>City map / bay handoff</dt><dd>M / E</dd></div><div><dt>Walk after a crash</dt><dd>WASD · drag or ← / → to turn</dd></div><div><dt>Remount near the bike</dt><dd>E</dd></div><div><dt>Return to Rainline</dt><dd>R</dd></div><div><dt>Pause</dt><dd>Esc / P</dd></div></dl>
+  <dl data-layout="pad" hidden><div><dt>Throttle / brake</dt><dd>RT / LT</dd></div><div><dt>Steer / look</dt><dd>Left / right stick</dd></div><div><dt>Face forward</dt><dd>Click right stick</dd></div><div><dt>Nitro boost</dt><dd>X / Square</dd></div><div><dt>City map / bay handoff</dt><dd>View / A (Cross)</dd></div><div><dt>Walk / look after a crash</dt><dd>Left / right stick</dd></div><div><dt>Remount near the bike</dt><dd>A / Cross</dd></div><div><dt>Dispatch selection</dt><dd>D-pad / A (Cross)</dd></div><div><dt>Return to Rainline</dt><dd>Y / Triangle</dd></div><div><dt>Pause</dt><dd>Menu</dd></div></dl>
+  <dl data-layout="touch" hidden><div><dt>Turn</dt><dd>Slide the steering pad</dd></div><div><dt>Hold your heading</dt><dd>Release the pad</dd></div><div><dt>Accelerate / slow down</dt><dd>Hold throttle / brake</dd></div><div><dt>Accelerate with nitro</dt><dd>Hold Nitro</dd></div><div><dt>Look around</dt><dd>Drag the road</dd></div><div><dt>Face forward</dt><dd>Double-tap the road</dd></div><div><dt>Dispatch / handoff</dt><dd>City map / bay button</dd></div><div><dt>Walk after a crash</dt><dd>Slide Walk · drag road to look</dd></div><div><dt>Remount near the bike</dt><dd>Tap Remount bike</dd></div></dl>
   <p class="control-note">Release nitro to recharge the cockpit gauge. <a href="./assets/audio/engine-credits.txt" target="_blank" rel="noopener" style="color:inherit">Engine sound credits</a></p></div>
 </dialog>
 <script type="module" src="./menu.js"></script>

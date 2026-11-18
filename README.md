@@ -10,7 +10,7 @@ Each shift offers eight contracts. Finish First Night, Regular Service and First
 
 W/S accelerate and brake, A/D turn the bike, and Shift fires the rechargeable nitro tank. Centering the steering holds the current heading, including on bends. The cockpit gauge shows the remaining charge.
 
-Traffic and guardrails respond to the angle and closing speed of contact. A scrape costs speed. A hard impact separates Vesper from the bike, and each carries its own momentum into the landing, bounce and slide. The bike resets at rest in a traffic gap after the crash.
+Traffic and guardrails respond to the angle and closing speed of contact. A scrape costs speed. A hard impact separates Vesper from the bike, and each carries its own momentum into the landing, bounce and slide. When they come to rest, walk back to the fallen motorcycle and remount within 2.4 metres. Use WASD and E on keyboard, the left stick and lower face button on a controller, or the walking pad and Remount button on touch. Vesper keeps her parcels. Timed deliveries keep counting during the walk, and saving on foot preserves both landing positions.
 
 Both sets of handlebar mirrors show the road behind the bike. On a phone, slide the steering pad with one thumb and hold throttle, brake or nitro with the other. Double-tap the road to face forward. The pause menu lets you swap the steering thumb and adjust rendering resolution.
 

@@ -221,18 +221,34 @@ export async function makeWorld(canvas,circuit,onLoad){
   };new ResizeObserver(resize).observe(canvas);
   window.addEventListener('circuit-resolution-change',resize);resize();
   const trafficLights=carList.map(c=>c.light);
-  let previousTime=null;
+  let previousTime=null,stoodAt=null,stride=0,footMotion=0;
+  const previousFoot=V();
   function draw(p,look,braking=0,navigation){
-    const f=circuit.frame(p.s,p.lateral),time=p.elapsed,crash=p.crashAge>=0,pose=crash?circuit.crash():null;
-    setFrame(bike,f,crash?.1:0,crash?pose.bikeRoll:p.lean*.55);
-    crashShot.visible(crash);hands.visible=!crash;
-    display.update(p);
+    const f=circuit.frame(p.s,p.lateral),time=p.elapsed,foot=p.foot?.active?p.foot:null;
+    const crash=!foot&&p.crashAge>=0,external=Boolean(crash||foot),pose=external?circuit.crash():null;
+    const footFrame=foot?circuit.frame(foot.s,foot.lateral):null;
+    crashShot.visible(crash);hands.visible=display.panel.visible=cabinetLight.visible=!external;
+    if(!external)display.update(p);
+    if(!foot)stoodAt=null;
     const heading=f.yaw+(p.headingError||0);
     let viewYaw=heading+look.yaw;
-    if(!crash)bike.rotation.y=-heading;
     if(crash){
       viewYaw=crashShot.draw(p,pose);
+    }else if(foot){
+      crashShot.parked(f,pose);
+      viewYaw=foot.yaw;
+      if(stoodAt===null||time<stoodAt){stoodAt=time;stride=footMotion=0;previousFoot.set(footFrame.x,footFrame.h,footFrame.z);}
+      const position=target.set(footFrame.x,footFrame.h,footFrame.z),step=Math.min(.65,position.distanceTo(previousFoot));
+      previousFoot.copy(position);stride+=step*6;
+      const dt=Math.min(.15,Math.max(0,time-(previousTime??time)));
+      if(dt>0)footMotion=T.MathUtils.damp(footMotion,T.MathUtils.clamp(step/(2.2*dt),0,1),14,dt);
+      const rise=T.MathUtils.smoothstep(time-stoodAt,0,.48);
+      camera.position.copy(position).y+=1.13+.51*rise+.019*footMotion*Math.sin(stride);
+      const pitch=look.pitch-.19-.055/(1+foot.distance*.25);
+      aim.set(Math.cos(viewYaw)*Math.cos(pitch),Math.sin(pitch),Math.sin(viewYaw)*Math.cos(pitch));
+      camera.up.set(0,1,0);camera.lookAt(target.copy(camera.position).add(aim));
     }else{
+      setFrame(bike,f,0,p.lean*.55);bike.rotation.y=-heading;
       const lean=f.bank+p.lean*.38,shake=Math.sin(time*49)*.003*p.rpm+(p.impact>0?Math.sin(time*75)*.018:0);
       camera.position.set(f.x+f.rx*lean*.34,f.h+1.46+shake,f.z+f.rz*lean*.34);
       const pitch=f.grade-.145+look.pitch;
@@ -254,8 +270,8 @@ export async function makeWorld(canvas,circuit,onLoad){
       actor.lastSpeed=car.v;
       brakeGlow.value=light.brake;
     });
-    stopLampMaterial.color.setRGB(1.7+braking*4.0,.035,.009);
-    vehicleSpill(camera.position,f,heading,braking,trafficLights,crash);
+    stopLampMaterial.color.setRGB(foot?1.4+2.1*Math.max(0,Math.sin(time*5)):1.7+braking*4.0,.035,.009);
+    vehicleSpill(camera.position,f,heading,braking,trafficLights,external);
     fliers.forEach((m,i)=>{
       const flight=aircraft[i],a=flight.phase+time*flight.rate,r=flight.radius;
       m.position.set(origin[0]+r*Math.cos(a),flight.altitude,origin[1]+r*aspect*Math.sin(a));
@@ -263,7 +279,7 @@ export async function makeWorld(canvas,circuit,onLoad){
     });
     jelly.position.y=landmark.position[2]+landmark.amplitude*Math.sin(time*landmark.rate);
     rainfall(camera.position,time,p.v);
-    let reflectFrame=f;
+    let reflectFrame=footFrame??f;
     if(crash){
       const riderRoad=network.roads.find(r=>pose.riderS>=r.start&&pose.riderS<=r.start+r.length);
       if(riderRoad && pose.bikeS>=riderRoad.start && pose.bikeS<=riderRoad.start+riderRoad.length){
@@ -272,7 +288,7 @@ export async function makeWorld(canvas,circuit,onLoad){
         reflectFrame=circuit.frame(pose.bikeS+separation*.5,(pose.bikeLateral+pose.riderLateral)*.5);
       }else reflectFrame=circuit.frame(pose.riderS,pose.riderLateral);
     }
-    rearView(f,heading,time,crash);track.reflect(renderer,camera,reflectFrame,time);composer.render();
+    rearView(f,heading,time,external);track.reflect(renderer,camera,reflectFrame,time);composer.render();
   }
   return {draw,modelCount:models.size};
 }

@@ -12,7 +12,8 @@ CORE = PROJECT / "Source" / "NeonRide"
 EXPORTS = ("reset_ride", "loop_length", "course_frame", "traffic_car", "drive", "crash_pose",
            "road_info", "road_name", "stop_label", "stop_position", "job_label", "job_info",
            "shift_ptr", "shift_reset", "shift_validate", "shift_accept", "shift_handoff",
-           "shift_next", "shift_nearby", "shift_route")
+           "shift_next", "shift_nearby", "shift_route", "foot_pose", "bike_distance",
+           "step_on_foot", "remount_bike", "restore_fall")
 
 
 def digest(path, normalize=False):

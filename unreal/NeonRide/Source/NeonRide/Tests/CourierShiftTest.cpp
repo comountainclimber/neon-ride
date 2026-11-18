@@ -208,7 +208,7 @@ bool FCourierShiftTest::RunTest(const FString &)
             return false;
         for (TActorIterator<ASkyway> Road(W); Road; ++Road)
         {
-            auto *Mesh = Road->FindComponentByClass<UProceduralMeshComponent>();
+            auto *Mesh = FindObjectFast<UProceduralMeshComponent>(*Road,TEXT("ContinuousRoad"));
             if (TestNotNull(TEXT("City street mesh"), Mesh))
                 TestEqual(TEXT("Five drivable road surfaces"), Mesh->GetNumSections(), Courier::RoadCount);
             if (FPlatformProperties::RequiresCookedData())

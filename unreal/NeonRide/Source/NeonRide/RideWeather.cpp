@@ -64,8 +64,8 @@ void URideWeather::SetAudioPaused(bool Paused)
 void URideWeather::UpdateWeather(float DeltaSeconds,const Circuit::Ride &Ride,double Throttle,double Brake)
 {
     const double Revs = FMath::Clamp((Ride.rpm-.24)/.73,0.,1.);
-    const double Load = Brake>.01 || Ride.crashAge>=0. ? 0. : FMath::Clamp(Throttle,0.,1.);
-    const double Motor = Ride.crashAge>=0. ? .20 : 1.;
+    const double Load = Brake>.01 || Ride.crashAge>=0. || Ride.foot.active ? 0. : FMath::Clamp(Throttle,0.,1.);
+    const double Motor = Ride.foot.active ? .48/(1.+Circuit::BikeDistance(Ride)*.18) : Ride.crashAge>=0. ? .20 : 1.;
     const double Gains[] = {
         Motor*FMath::Square(1.-Revs)*.38,
         Motor*(.18+.42*Load)*(.4+.6*FMath::Sin(PI*Revs)),

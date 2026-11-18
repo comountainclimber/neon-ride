@@ -96,6 +96,11 @@ void CourierStreets::Build(ASkyway &World, UProceduralMeshComponent &Asphalt, UI
         M->SetVectorParameterValue(TEXT("Color"), FLinearColor(.99f, .23f, .04f));
 
     FStreetGrid Grid;
+    auto *SubDeck = NewObject<UProceduralMeshComponent>(&World, TEXT("DistrictBridgeSides"));
+    World.AddInstanceComponent(SubDeck);
+    SubDeck->SetupAttachment(World.GetRootComponent());
+    SubDeck->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    SubDeck->RegisterComponent();
     for (int Road = 0; Road < Courier::RoadCount; ++Road)
     {
         int Count = FMath::CeilToInt(Courier::RoadLength(Road) / 4.);
@@ -132,7 +137,8 @@ void CourierStreets::Build(ASkyway &World, UProceduralMeshComponent &Asphalt, UI
             Indices.Append({A, A + 1, A + 2, A + 2, A + 1, A + 3});
             const double Mid = S + Step * .5;
             const auto At = Frame(Mid);
-            Block(Steel, At, {0, 0, -.86}, {Step + .08, 13.42, 1.10});
+            if (Road == 0)
+                Block(Steel, At, {0, 0, -.86}, {Step + .08, 13.42, 1.10});
             bool IsBay = false;
             for (int Stop = 0; Stop < Courier::AddressCount; ++Stop)
             {
@@ -160,10 +166,116 @@ void CourierStreets::Build(ASkyway &World, UProceduralMeshComponent &Asphalt, UI
                                              At.GetLocation() - FVector(0, 0, Height * 50. + 95.),
                                              FVector(2.5, 7, Height)));
             }
+            const double D = Mid - Start;
+            if (Road == 0 || D < 95. || D > Length - 88.)
+                continue;
+            for (int Side : {-1, 1})
+            {
+                if ((IsBay && Side == 1) || OtherPavement(Grid, Frame(Mid, Side * 9.).GetLocation(), Road))
+                    continue;
+                const double Outer = Road == 1 ? 11.6 : Road == 3 ? 10.8 : 8.25;
+                Block(Steel, At, {0., Side * (Outer + 6.91) * .5, -.56}, {Step + .13, Outer - 6.91, .68});
+                if (Road == 1)
+                    Block(*Lighting[Road], At, {0., Side * (Outer - .17), -.205}, {Step + .04, .1, .025});
+                if (Road == 4 && I % 10 == 0)
+                {
+                    Block(Steel, At, {0., Side * 7.55, -2.6}, {.48, .58, 5.2});
+                    Block(Marker, At, {0., Side * 7.55, .19}, {.47, .33, .15});
+                }
+            }
+            if (Road == 2)
+            {
+                for (double Lane : {-42.3, -10.6})
+                    Block(Steel, Frame(Mid, Lane), {0, 0, -2.53}, {Step + .75, .44, 3.74});
+                if (I % 12 == 0)
+                {
+                    Block(Marker, Frame(Mid, -10.62), {0, 0, -.42}, {.32, .48, .14});
+                    if (I % 36 == 0)
+                        for (int Rung = 0; Rung < 9; ++Rung)
+                            Block(Steel, Frame(Mid, -11.02), {0, 0, -.67 - Rung * .31}, {.80, .12, .087});
+                }
+            }
+            if (Road == 3 && I % 31 == 0 && !IsBay)
+            {
+                const int Side = (I / 31) % 2 ? -1 : 1;
+                bool Free = true;
+                for (double Along : {-12., 0., 12.})
+                    for (double Lane : {10., 15., 22.})
+                        Free &= !OtherPavement(Grid, Frame(Mid + Along, Lane * Side).GetLocation(), Road);
+                for (int Stop = 0; Stop < Courier::AddressCount; ++Stop)
+                    Free &= FMath::Abs(Mid - Courier::Stop(Stop).s) > 34.;
+                if (Free)
+                {
+                    Block(Steel, At, {0., Side * 16., -.72}, {23., 12., 1.26});
+                    for (int Box = 0; Box < 3; ++Box)
+                    {
+                        const auto Crate = Frame(Mid - 6.2 + Box * 6.1, Side * (Box % 2 ? 16.9 : 18.9));
+                        Block(Steel, Crate, {0, 0, 1.03}, {5.78, 2.44, 2.08});
+                        for (double Rib : {-2.5, -1.1, .3, 1.7})
+                            Block(*Tanks, Crate, {Rib, 0, 1.06}, {.065, 2.48, 2.14});
+                    }
+                    Block(Marker, At, {0., Side * 11.2, .07}, {20.9, .09, .07});
+                }
+            }
         }
         Asphalt.CreateMeshSection_LinearColor(Road, V, Indices, N, UV, {}, Tangents, false);
         Asphalt.SetMaterial(Road, Wet);
+        if (Road > 0)
+        {
+            // The structural skin follows both sampled road edges through banking changes.
+            TArray<FVector> Shell;
+            TArray<int32> Faces;
+            for (int I = 0; I <= Count; ++I)
+            {
+                for (int Side = 0; Side < 2; ++Side)
+                {
+                    const auto Top = V[I * 2 + Side] - FVector(0, 0, 6.);
+                    Shell.Add(Top);
+                    Shell.Add(Top - FVector(0, 0, 115.));
+                }
+                if (I == Count)
+                    break;
+                const int A = 4 * I;
+                Faces.Append({A, A + 4, A + 1, A + 1, A + 4, A + 5, A + 2, A + 3, A + 6, A + 3, A + 7, A + 6, A + 1,
+                              A + 5, A + 3, A + 3, A + 5, A + 7});
+            }
+            SubDeck->CreateMeshSection_LinearColor(Road - 1, Shell, Faces, {}, {}, {}, {}, false);
+            SubDeck->SetMaterial(Road - 1, Steel.GetMaterial(0));
+        }
     }
+
+    auto *Canal = NewObject<UProceduralMeshComponent>(&World, TEXT("FloodworksCanal"));
+    World.AddInstanceComponent(Canal);
+    Canal->SetupAttachment(World.GetRootComponent());
+    Canal->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    Canal->SetCastShadow(false);
+    Canal->RegisterComponent();
+    auto *Water = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Environment/M_CourierCanal.M_CourierCanal"));
+    TArray<FVector> V, N;
+    TArray<int32> Triangles;
+    TArray<FVector2D> UV;
+    TArray<FProcMeshTangent> T;
+    const double Begin = Courier::RoadStart(2) + 95., Span = Courier::RoadLength(2) - 183.;
+    const int Sections = FMath::CeilToInt(Span / 4.);
+    for (int I = 0; I <= Sections; ++I)
+    {
+        const double Along = Span * I / Sections;
+        for (double Offset : {-42., -10.8})
+        {
+            const auto F = Frame(Begin + Along, Offset);
+            V.Add(F.GetLocation() - FVector(0., 0., 345.));
+            N.Add(FVector::UpVector);
+            T.Emplace(F.GetUnitAxis(EAxis::Y), true);
+            UV.Emplace(Offset, Along);
+        }
+        if (I < Sections)
+        {
+            const int A = I * 2;
+            Triangles.Append({A, A + 1, A + 2, A + 2, A + 1, A + 3});
+        }
+    }
+    Canal->CreateMeshSection_LinearColor(0, V, Triangles, N, UV, {}, T, false);
+    Canal->SetMaterial(0, Water);
 
     for (int A = 0; A < Courier::AddressCount; ++A)
     {

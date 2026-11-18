@@ -4,15 +4,27 @@
 namespace Courier
 {
 constexpr int RoadCount = 5, AddressCount = 6, JobCount = 8;
-struct Address { const char *name, *district, *client; double s; };
-struct Job { const char *parcel; int from, to, windowSeconds; };
+struct Address
+{
+    const char *name, *district, *client;
+    double s;
+};
+struct Job
+{
+    const char *parcel;
+    int from, to, windowSeconds;
+};
 struct Shift
 {
     int status[JobCount]{}, visits[AddressCount]{}, number = 1, finished = 0;
     double pickedAt[JobCount]{};
     int onTime[JobCount]{};
 };
-struct Route { double meters, turnIn; int nextRoad, via[10], count; };
+struct Route
+{
+    double meters, turnIn;
+    int nextRoad, via[10], count;
+};
 double RoadStart(int road);
 double RoadLength(int road);
 const char *RoadName(int road);
@@ -34,4 +46,4 @@ bool NextShift(Shift &state);
 bool RampOpen(const Shift &state);
 Route Directions(double s, int stopId, bool rampOpen);
 void Sanitize(Shift &state);
-}
+} // namespace Courier

@@ -70,6 +70,40 @@ void ANeonRideHUD::DrawHUD()
     auto Line=[&](const FString& Value,float Offset,const FLinearColor& Colour) {
         DrawText(Value,Colour,X+13*Scale,Y+Offset*Scale,GEngine->GetSmallFont(),Scale);
     };
+    if(Ride.foot.active) {
+        const double Distance=Circuit::BikeDistance(Ride);
+        const bool Reach=Distance<=2.4;
+        DrawRect(Ink,X,Y,410*Scale,81*Scale);
+        DrawRect(Warm,X,Y,2*Scale,81*Scale);
+        Line(FString::Printf(TEXT("RECOVER MOTORCYCLE     %.1f m"),Distance),6,Warm);
+        Line(Reach?TEXT("E / A   Remount motorcycle"):TEXT("WASD / left stick   Walk to the bike"),31,Accent);
+        Line(TEXT("Mouse / right stick   Look around"),54,Cyan);
+        FVector Eye; FRotator View; PC->GetPlayerViewPoint(Eye,View);
+        const FVector Location=Rider->GetActorLocation()+FVector(0,0,75.);
+        FVector2D Marker;
+        const float Pad=38*Scale;
+        if(!PC->ProjectWorldLocationToScreen(Location,Marker)) {
+            const double Turn=FMath::FindDeltaAngleDegrees(View.Yaw,(Location-Eye).Rotation().Yaw);
+            Marker=FVector2D(Turn<0.?Pad:Canvas->ClipX-Pad,Canvas->ClipY*.55);
+        }
+        Marker.X=FMath::Clamp(Marker.X,double(Pad),double(Canvas->ClipX-Pad));
+        Marker.Y=FMath::Clamp(Marker.Y,double(Pad),double(Canvas->ClipY-Pad));
+        const float Radius=9*Scale;
+        for(int Side:{-1,1}) {
+            DrawLine(Marker.X,Marker.Y-Radius,Marker.X+Side*Radius,Marker.Y,Warm,2*Scale);
+            DrawLine(Marker.X+Side*Radius,Marker.Y,Marker.X,Marker.Y+Radius,Warm,2*Scale);
+        }
+        for(int I=0;I<Courier::JobCount;++I) {
+            if(Shift.status[I]!=2) continue;
+            const auto Parcel=Courier::Contract(I,Shift.number);
+            if(Parcel.windowSeconds<=0) continue;
+            const int Sec=FMath::Max(0,FMath::CeilToInt32(Parcel.windowSeconds-(Ride.elapsed-Shift.pickedAt[I])));
+            DrawText(FString::Printf(TEXT("%s   /   %02d:%02d"),UTF8_TO_TCHAR(Parcel.parcel),Sec/60,Sec%60),
+                     Warm,X,Y+86*Scale,GEngine->GetSmallFont(),Scale);
+            break;
+        }
+        return;
+    }
     DrawRect(Ink,X,Y,425*Scale,(Dest<0?57:101)*Scale);
     DrawRect(Dest<0?Cyan:Warm,X,Y,2*Scale,(Dest<0?57:101)*Scale);
     Line(FString::Printf(TEXT("%s     /     SHIFT %02d"),*FString(UTF8_TO_TCHAR(Courier::RoadName(Road))).ToUpper(),Shift.number),5,Cyan);

@@ -7,7 +7,7 @@ class UNeonRideSave : public USaveGame
 {
     GENERATED_BODY()
   public:
-    UPROPERTY(SaveGame) int32 Version = 3;
+    UPROPERTY(SaveGame) int32 Version = 4;
     UPROPERTY(SaveGame) double Distance = 0;
     UPROPERTY(SaveGame) double Lane = 0;
     UPROPERTY(SaveGame) double Heading = 0;
@@ -23,4 +23,12 @@ class UNeonRideSave : public USaveGame
     UPROPERTY(SaveGame) TArray<int32> Visits;
     UPROPERTY(SaveGame) TArray<double> PickupTimes;
     UPROPERTY(SaveGame) TArray<int32> OnTime;
+    UPROPERTY(SaveGame) bool OnFoot = false;
+    UPROPERTY(SaveGame) double FootDistance = 0.;
+    UPROPERTY(SaveGame) double FootLane = 0.;
+    UPROPERTY(SaveGame) double FootYaw = 0.;
+    UPROPERTY(SaveGame) double BikeHeight = .28;
+    UPROPERTY(SaveGame) double BikePitch = 0.;
+    UPROPERTY(SaveGame) double BikeYaw = 0.;
+    UPROPERTY(SaveGame) double BikeRoll = 0.;
 };

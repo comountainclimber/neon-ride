@@ -16,7 +16,7 @@ const clientNotes = [
   ['Thank you. I’ll take it straight to the night ward.','Hello again, Vesper. The night ward remembers you.']
 ];
 const campaign = [
-  ['First Night','Inez has two parcels waiting at Rainline Repair.'],
+  ['First Night','Inez is sending a pump controller to Tide Pump Nine and a film reel to Aurora.'],
   ['Regular Service','The night crews are calling you back. Sol has a dawn print on order.'],
   ['First Light','The city is bringing Aurora Cinema back for its dawn screening.']
 ];
@@ -29,6 +29,7 @@ export function createCourierDesk(circuit, hooks, preferences) {
   let selected = manual >= 0 ? manual : 0, tab='map', lastRefresh=-Infinity;
   let targetId=-1, near=-1, state=network.state(), lastFinished=state.finished;
   let lastClient=network.stops.some(s=>s.id===preferences?.lastClient)?preferences.lastClient:-1;
+  let tripId=preferences?.tripId, tripMeters=Number.isFinite(preferences?.tripMeters)?preferences.tripMeters:0;
   const slots=[-1,-1].map((empty,i)=>Number.isInteger(preferences?.panniers?.[i])?preferences.panniers[i]:empty);
   const stop = id => network.stops.find(s=>s.id===id);
   const road = id => network.roads.find(r=>r.id===id);
@@ -82,9 +83,11 @@ export function createCourierDesk(circuit, hooks, preferences) {
     const ride=circuit.ride();
     if(!force && Math.abs(ride.elapsed-lastRefresh)<.14)return;
     lastRefresh=ride.elapsed;
-    state=network.state();fitPanniers();near=ride.crashAge>=0?-1:network.nearby();targetId=goal();
+    state=network.state();fitPanniers();near=ride.crashAge>=0||ride.foot?.active?-1:network.nearby();targetId=goal();
     const destination=stop(targetId), route=destination?network.routeTo(targetId):null;
     const tasks=actionable(), handoff=tasks[0], orders=active();
+    if(tripId!==targetId){tripId=targetId;tripMeters=route?.meters||0;}
+    if(route)tripMeters=Math.max(tripMeters,route.meters);
     const aimed=orders.find(j=>jobStop(j)===targetId);
     const marked=destination && manual>=0 && !aimed;
     $('navPhase').textContent=state.finished?'Shift complete':aimed?(state.status[aimed.id]===1?'Pickup':'Delivery'):marked?'Waypoint':shiftTitle(state.number);
@@ -95,7 +98,7 @@ export function createCourierDesk(circuit, hooks, preferences) {
     $('lap').textContent=carried.length+'/2 loaded';
     const timed=carried.find(j=>j.windowSeconds>0);
     if(timed){const remaining=timed.windowSeconds-(ride.elapsed-state.pickedAt[timed.id]);$('lap').textContent=remaining>0?'Due '+clock(remaining):'Window passed';}
-    $('meter').style.width=(destination?Math.max(2,100*(1-Math.min(1,route.meters/1600))):0)+'%';
+    $('meter').style.width=(destination?(route.meters<1?100:100*(1-route.meters/Math.max(1,tripMeters))):0)+'%';
     const atBay=near>=0;
     $('bayAction').hidden=!atBay;
     if(atBay)$('bayAction').textContent=handoff?(state.status[handoff.id]===1?'Collect ':'Deliver ')+handoff.parcel:'Open bay dispatch';
@@ -159,10 +162,11 @@ export function createCourierDesk(circuit, hooks, preferences) {
     const orders=active();
     const offers=network.jobs.filter(j=>state.status[j.id]===0).sort((a,b)=>Number(b.from===near)-Number(a.from===near));
     const dock=stop(near), atBay=offers.filter(j=>j.from===near);
-    const pickup=atBay.length?atBay.length+' available '+(atBay.length===1?'pickup':'pickups'):'No open pickups';
+    const pending=actionable().length;
+    const pickup=pending?pending+' '+(pending===1?'handoff':'handoffs')+' ready':atBay.length?atBay.length+' available '+(atBay.length===1?'pickup':'pickups'):'No open pickups';
     const location=dock?'<p class="bay-location"><strong>'+escape(dock.name)+'</strong><span>'+escape(dock.client)+' · '+pickup+'</span></p>':'';
     const briefing=campaign[state.number-1]?.[1];
-    $('jobDetails').innerHTML='<div class="shift-brief"><small>Shift '+String(state.number).padStart(2,'0')+'</small><h3>'+shiftTitle(state.number)+'</h3>'+(briefing?'<p>'+briefing+'</p>':'')+'</div>'+location+panniers()+(orders.length?'<h3 class="ledger-heading">Your runs</h3>'+orders.map(jobRow).join(''):'')+'<h3 class="ledger-heading">Dispatch board</h3>'+(offers.length?offers.map(jobRow).join(''):'<p class="muted">All runs have been assigned.</p>');
+    $('jobDetails').innerHTML='<div class="shift-brief"><h3>'+shiftTitle(state.number)+'</h3>'+(briefing?'<p>'+briefing+'</p>':'')+'</div>'+location+panniers()+(orders.length?'<h3 class="ledger-heading">Your runs</h3>'+orders.map(jobRow).join(''):'')+'<h3 class="ledger-heading">Dispatch board</h3>'+(offers.length?offers.map(jobRow).join(''):'<p class="muted">All runs have been assigned.</p>');
   }
   function shiftPage(){
     const delivered=network.jobs.filter(j=>state.status[j.id]===3);
@@ -204,6 +208,6 @@ export function createCourierDesk(circuit, hooks, preferences) {
   });
   $('openDesk').onclick=()=>open();
   $('bayAction').onclick=interact;
-  return {open,interact,refresh,preferences:()=>({waypoint:manual,panniers:slots.slice(),lastClient}),
+  return {open,interact,refresh,preferences:()=>({waypoint:manual,panniers:slots.slice(),lastClient,tripId,tripMeters}),
     view:()=>({targetId,rampOpen:Boolean(state.rampOpen),campaignComplete:campaignComplete()})};
 }

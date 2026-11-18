@@ -1,6 +1,7 @@
 import * as T from 'three';
 
 export function rearMirrors(scene,renderer,bike,body){
+  const liveMirror={value:1};
   const target=new T.WebGLRenderTarget(768,320,{type:T.HalfFloatType,depthBuffer:true,samples:0});
   // Trace the boundaries of the two silver inserts on the original film bike. The
   // fixed construction camera maps that silhouette into the bike's local geometry.
@@ -27,11 +28,11 @@ export function rearMirrors(scene,renderer,bike,body){
     geometry.setAttribute('mirrorGlass',new T.BufferAttribute(uv,3));part.geometry=geometry;
     const material=part.material.clone();part.material=material;
     material.onBeforeCompile=sh=>{
-      Object.assign(sh.uniforms,{rearView:{value:target.texture},glassMask:{value:mask}});
+      Object.assign(sh.uniforms,{rearView:{value:target.texture},glassMask:{value:mask},liveMirror});
       sh.vertexShader='attribute vec3 mirrorGlass; varying vec3 glassUV;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nglassUV=mirrorGlass;');
-      sh.fragmentShader='uniform sampler2D rearView,glassMask; varying vec3 glassUV;\n'+sh.fragmentShader;
+      sh.fragmentShader='uniform float liveMirror; uniform sampler2D rearView,glassMask; varying vec3 glassUV;\n'+sh.fragmentShader;
       sh.fragmentShader=sh.fragmentShader.replace('#include <opaque_fragment>',`
-        if(abs(glassUV.z)>.9 && all(greaterThan(glassUV.xy,vec2(0.))) && all(lessThan(glassUV.xy,vec2(1.)))){
+        if(liveMirror>.5 && abs(glassUV.z)>.9 && all(greaterThan(glassUV.xy,vec2(0.))) && all(lessThan(glassUV.xy,vec2(1.)))){
           float useGlass=texture2D(glassMask,glassUV.xy).a;
           float mirrorX=glassUV.z<0.?mix(.96,.49,glassUV.x):mix(.06,.53,glassUV.x);
           vec3 rear=texture2D(rearView,vec2(mirrorX,mix(.28,.81,glassUV.y))).rgb;
@@ -42,8 +43,9 @@ export function rearMirrors(scene,renderer,bike,body){
   });
   const camera=new T.PerspectiveCamera(67,target.width/target.height,.15,1350),look=new T.Vector3();
   let last=-Infinity;
-  return (frame,heading,time,crash)=>{
-    if(crash || (time>=last && time-last<1/24))return;last=time;
+  return (frame,heading,time,external)=>{
+    liveMirror.value=external?0:1;
+    if(external || (time>=last && time-last<1/24))return;last=time;
     camera.position.set(frame.x,frame.h+1.22,frame.z);
     look.set(-Math.cos(heading),-.058-Math.tan(frame.grade),-Math.sin(heading)).add(camera.position);
     camera.lookAt(look);camera.updateMatrixWorld();

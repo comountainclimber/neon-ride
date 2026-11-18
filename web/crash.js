@@ -38,7 +38,43 @@ function bikeHull(body,bike){
     }
     if(extreme)hull.add(extreme);
   }
-  return [...hull];
+  return {hull:[...hull],samples:points};
+}
+
+// A parked motorcycle lies across the road on irregular contact points. Project
+// its actual outline at several heights so its tyres, fairing and bar occlude the
+// wet surface most strongly where they touch. Only rebuilt when the bike settles.
+function parkedContact(scene,samples){
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=256;
+  const ctx=canvas.getContext('2d'),tex=new T.CanvasTexture(canvas),shadow=contactShadow(scene,tex);
+  shadow.visible=false;shadow.renderOrder=3;
+  const world=V(),relative=V(),right=V(),forward=V(),matrix=new T.Matrix4(),cache=new T.Matrix4();
+  function outline(points){
+    points.sort((a,b)=>a.x-b.x||a.y-b.y);
+    const half=list=>{const side=[];for(const p of list){
+      while(side.length>1){const a=side[side.length-2],b=side[side.length-1];if((b.x-a.x)*(p.y-a.y)-(b.y-a.y)*(p.x-a.x)>0)break;side.pop();}
+      side.push(p);
+    }side.pop();return side;};
+    return half(points).concat(half(points.reverse()));
+  }
+  return {shadow,update(com,bike,frame,floorPoint,up){
+    bike.updateMatrix();if(cache.equals(bike.matrix))return;
+    cache.copy(bike.matrix);
+    forward.set(frame.fx,Math.tan(frame.grade),frame.fz).normalize();right.crossVectors(forward,up).normalize();
+    matrix.makeBasis(forward,up,right);shadow.quaternion.setFromRotationMatrix(matrix);
+    shadow.position.copy(floorPoint).addScaledVector(up,.030);shadow.scale.set(3.45,1,3.45);
+    const points=samples.map(sample=>{
+      relative.copy(world.copy(sample).applyQuaternion(bike.quaternion).add(com)).sub(floorPoint);
+      return {x:128+relative.dot(forward)*256/3.45,y:128+relative.dot(right)*256/3.45,h:relative.dot(up)};
+    });
+    ctx.clearRect(0,0,256,256);
+    for(const [height,blur,alpha] of [[1.2,11,.24],[.48,6,.44],[.24,3.5,.55],[.09,1.2,.65]]){
+      const edge=outline(points.filter(p=>p.h<height));if(edge.length<3)continue;
+      ctx.filter='blur('+blur+'px)';ctx.fillStyle='rgba(6,10,13,'+alpha+')';ctx.beginPath();
+      edge.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();
+    }
+    ctx.filter='none';tex.needsUpdate=true;
+  }};
 }
 
 function scrape(scene){
@@ -88,7 +124,7 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
   action.setLoop(T.LoopOnce,1);action.clampWhenFinished=true;action.play();action.paused=true;
   let suit;
   vesper.obj.traverse(mesh=>{if(mesh.isSkinnedMesh)suit=mesh;});
-  const hull=bikeHull(body,bike);
+  const {hull,samples}=bikeHull(body,bike),parkedShade=parkedContact(scene,samples);
   const texCanvas=document.createElement('canvas');texCanvas.width=texCanvas.height=96;
   const ctx=texCanvas.getContext('2d'),grad=ctx.createRadialGradient(48,48,0,48,48,48);
   grad.addColorStop(0,'#091019e3');grad.addColorStop(.42,'#13192399');grad.addColorStop(1,'#13192300');
@@ -101,6 +137,8 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
   const spin=new T.Quaternion(),angles=new T.Euler(0,0,0,'YZX');
   let shown=false;
   function visible(value){
+    parkedShade.shadow.visible=false;
+    bikeShadow.visible=light.visible=value;
     if(value===shown && riderFrame.visible===value)return;
     shown=value;riderFrame.visible=riderShadow.visible=bikeShadow.visible=light.visible=value;
     if(!value)sparks(null,null,0,0,0,false);
@@ -115,6 +153,29 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
     shadow.rotateY(-yaw);
     shadow.scale.set(length*(1+height*.12),1,width*(1+height*.18));
     shadow.material.opacity=.72/(1+height*.88);
+  }
+  function placeBike(bf,pose){
+    setFrame(bike,bf,pose.bikeHeight);
+    bike.quaternion.multiply(spin.setFromEuler(angles.set(pose.bikeRoll,-pose.bikeYaw,pose.bikePitch,'YZX')));
+    bikeCOM.copy(bike.position);
+    floor(bf);
+    let lowest=Infinity;
+    for(const point of hull){
+      scratch.copy(point).applyQuaternion(bike.quaternion);
+      const below=scratch.dot(frameUp);
+      if(below<lowest){lowest=below;contact.copy(scratch);}
+    }
+    const bikeClearance=pose.bikeHeight*frameUp.y+lowest;
+    const correction=(.014-bikeClearance)/frameUp.y;
+    bikeCOM.y+=pose.bikeGround?correction:Math.max(0,correction);
+    bike.position.copy(bikeCOM).sub(scratch.copy(bikeCenter).applyQuaternion(bike.quaternion));
+    contact.add(bikeCOM);
+    shade(bikeShadow,bf,Math.max(0,bikeCOM.y-bf.h-.29),1.05,2.55,pose.bikeYaw);
+  }
+  function parked(bf,pose){
+    placeBike(bf,pose);bikeShadow.visible=false;parkedShade.shadow.visible=true;
+    parkedShade.update(bikeCOM,bike,bf,floorPoint,frameUp);
+    light.visible=true;light.position.copy(bikeCOM).y+=1.45;
   }
   function draw(p,pose){
     const rf=circuit.frame(pose.riderS,pose.riderLateral),bf=circuit.frame(pose.bikeS,pose.bikeLateral);
@@ -132,24 +193,8 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
       const correction=(.018-bottom)/frameUp.y;
       riderFrame.position.y+=pose.riderGround?correction:Math.max(0,correction);
     }
-    riderCOM.copy(riderFrame.position);
-    setFrame(bike,bf,pose.bikeHeight);
-    bike.quaternion.multiply(spin.setFromEuler(angles.set(pose.bikeRoll,-pose.bikeYaw,pose.bikePitch,'YZX')));
-    bikeCOM.copy(bike.position);
-    floor(bf);
-    let lowest=Infinity;
-    for(const point of hull){
-      scratch.copy(point).applyQuaternion(bike.quaternion);
-      const below=scratch.dot(frameUp);
-      if(below<lowest){lowest=below;contact.copy(scratch);}
-    }
-    const bikeClearance=pose.bikeHeight*frameUp.y+lowest;
-    const correction=(.014-bikeClearance)/frameUp.y;
-    bikeCOM.y+=pose.bikeGround?correction:Math.max(0,correction);
-    bike.position.copy(bikeCOM).sub(scratch.copy(bikeCenter).applyQuaternion(bike.quaternion));
-    contact.add(bikeCOM);
+    riderCOM.copy(riderFrame.position);placeBike(bf,pose);
     shade(riderShadow,rf,Math.max(0,riderCOM.y-rf.h-.27),1.05,1.85,pose.riderYaw);
-    shade(bikeShadow,bf,Math.max(0,bikeCOM.y-bf.h-.29),1.05,2.55,pose.bikeYaw);
     sparks(contact,bf,p.crashAge,pose.bikeSpeed,pose.bikeHit,pose.bikeGround);
 
     // An oblique view down the road keeps both trajectories readable as the bodies separate.
@@ -173,5 +218,5 @@ export function createCrash(scene,camera,circuit,bike,body,vesper,setFrame){
     light.position.copy(riderCOM).addScaledVector(towardEye,1.2).y+=1.3;
     return Math.atan2(camTarget.z-camera.position.z,camTarget.x-camera.position.x);
   }
-  return {visible,draw};
+  return {visible,draw,parked};
 }

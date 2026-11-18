@@ -395,9 +395,56 @@ CrashPose Ejection(const Ride &r)
             r.severity,
             clip};
 }
-void Advance(Ride &p, double gas, double brake, double steer, bool request, double dt, bool rampOpen)
+void Walk(Ride &p, double forward, double right, double turn, double dt)
 {
-    if (dt <= 0.)
+    if (!p.foot.active || dt <= 0.) return;
+    p.elapsed += dt;
+    auto &foot = p.foot;
+    foot.yaw = angle(foot.yaw + turn);
+    const double strength = magnitude(forward, right);
+    if (strength < .0001) return;
+    const double step = 2.85 * dt / (strength > 1. ? strength : 1.);
+    const auto deck = At(foot.s, foot.lateral);
+    const double heading = foot.yaw - deck.yaw;
+    const double ds = step * (forward * cos(heading) - right * sin(heading)) * cos(deck.grade)
+                    / limit(1. - deck.curvature * foot.lateral, .75, 1.25);
+    const double dl = step * (forward * sin(heading) + right * cos(heading));
+    // The rider and bike can land on opposite sides of a district merge.
+    // On the return walk the same merge is traversable in reverse.
+    const int parked = Courier::RoadOf(p.s);
+    const double merge = parked ? Courier::Exit(parked) : -1.;
+    if (parked && Courier::RoadOf(foot.s) == Courier::RoadOf(merge) && ds < 0. &&
+        foot.s >= merge && foot.s + ds < merge)
+        foot.s = Courier::RoadStart(parked) + Courier::RoadLength(parked) + foot.s + ds - merge;
+    else
+        foot.s = Courier::Move(foot.s, ds, foot.lateral, false, false);
+    foot.lateral = limit(foot.lateral + dl, -HalfWidth + .27, HalfWidth - .27);
+}
+
+double BikeDistance(const Ride &p)
+{
+    if (!p.foot.active) return 0.;
+    const auto person = At(p.foot.s, p.foot.lateral), bike = At(p.s, p.lateral);
+    const double dx = person.x - bike.x, dy = person.y - bike.y, dz = person.z - bike.z;
+    return ROOT(dx*dx + dy*dy + dz*dz);
+}
+
+bool Remount(Ride &p)
+{
+    if (!p.foot.active || BikeDistance(p) > 2.4) return false;
+    p.foot = {};
+    p.riderBody = {};
+    p.bikeBody = {};
+    p.v = p.sideV = p.lean = p.steer = p.headingError = p.impact = p.boost = 0.;
+    p.lateral = limit(p.lateral, -RideLimit, RideLimit);
+    p.gear = 1.;
+    p.rpm = .26;
+    return true;
+}
+
+void Advance(Ride &p, double gas, double brake, double steer, bool request, double dt, bool rampOpen, bool onFootRecovery)
+{
+    if (dt <= 0. || p.foot.active)
         return;
     if (p.crashAge >= 0)
     {
@@ -415,7 +462,20 @@ void Advance(Ride &p, double gas, double brake, double steer, bool request, doub
         if ((p.crashAge >= 3.5 && p.riderBody.ground && p.bikeBody.ground && p.v < 5.5 &&
              magnitude(p.riderBody.forwardV, p.riderBody.sideV) < 4.) ||
             p.crashAge >= 6.8)
-            recover(p);
+        {
+            if (!onFootRecovery)
+                recover(p);
+            else
+            {
+                const auto &rider = p.riderBody;
+                const auto person = At(rider.s, rider.lateral), bike = At(p.s, p.lateral);
+                const double yaw = atan2(bike.y-person.y, bike.x-person.x);
+                p.foot = {1., rider.s, rider.lateral, yaw};
+                p.crashAge = -1.;
+                p.v = p.sideV = p.lean = p.steer = p.boost = p.impact = 0.;
+                p.rpm = .16;
+            }
+        }
         return;
     }
     const auto f = At(p.s, p.lateral);
@@ -566,9 +626,18 @@ extern "C"
         Eject = Circuit::Ejection(Bike);
         return &Eject;
     }
-    void drive(double g, double b, double s, int boost, double dt)
+    void drive(double g, double b, double s, int boost, double dt, int onFootRecovery)
     {
-        Circuit::Advance(Bike, g, b, s, boost != 0, dt, Courier::RampOpen(Duty));
+        Circuit::Advance(Bike, g, b, s, boost != 0, dt, Courier::RampOpen(Duty), onFootRecovery != 0);
+    }
+    Circuit::Foot *foot_pose() {return &Bike.foot;}
+    double bike_distance() {return Circuit::BikeDistance(Bike);}
+    void step_on_foot(double forward,double right,double turn,double dt){Circuit::Walk(Bike,forward,right,turn,dt);}
+    int remount_bike(){return Circuit::Remount(Bike);}
+    void restore_fall(double height,double pitch,double roll,double yaw)
+    {
+        Bike.bikeBody.s=Bike.s;Bike.bikeBody.lateral=Bike.lateral;Bike.bikeBody.ground=1.;
+        Bike.bikeBody.height=height;Bike.bikeBody.pitch=pitch;Bike.bikeBody.roll=roll;Bike.bikeBody.yaw=yaw;
     }
     double road_info(int id, int field)
     {

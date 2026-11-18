@@ -183,7 +183,7 @@ void ARidePawn::SetupPlayerInputComponent(UInputComponent *Input)
     Input->BindAxis("Throttle", this, &ARidePawn::SetThrottle);
     Input->BindAxis("Brake", this, &ARidePawn::SetBrake);
     Input->BindAxis("Steer", this, &ARidePawn::SetSteer);
-    Input->BindAction("RestartRide", IE_Pressed, this, &ARidePawn::RestartRide);
+    Input->BindAction("RestartRide", IE_Pressed, this, &ARidePawn::RestartInput);
     Input->BindAxis("LookX", this, &ARidePawn::LookX);
     Input->BindAxis("LookY", this, &ARidePawn::LookY);
     Input->BindAxis("LookStickX", this, &ARidePawn::LookStickX);
@@ -193,7 +193,8 @@ void ARidePawn::SetupPlayerInputComponent(UInputComponent *Input)
     Input->BindAction("Nitro", IE_Released, this, &ARidePawn::BoostReleased);
     Input->BindAction("PauseRide", IE_Pressed, this, &ARidePawn::OpenPauseMenu);
     Input->BindAction("Dispatch", IE_Pressed, this, &ARidePawn::ToggleDispatch);
-    Input->BindAction("Handoff", IE_Pressed, this, &ARidePawn::ServiceStop);
+    Input->BindAction("Handoff", IE_Pressed, this, &ARidePawn::UseAtBike);
+    Input->BindAxis("FootForward",this,&ARidePawn::SetFootForward);
 }
 
 bool ARidePawn::SaveLocation() const
@@ -242,8 +243,20 @@ void ARidePawn::ClosePauseMenu()
 void ARidePawn::ReturnFromMenu()
 {
     ClosePauseMenu();
-    RestartRide();
+    RestartInput();
     SaveLocation();
+}
+void ARidePawn::RestartInput()
+{
+    if(Ride.crashAge>=0. || Ride.foot.active) {Notify(TEXT("Retrieve the motorcycle to return to Rainline"));return;}
+    RestartRide();
+}
+void ARidePawn::UseAtBike()
+{
+    if(!Ride.foot.active) {if(Ride.crashAge<0.) ServiceStop();return;}
+    if(!Circuit::Remount(Ride)) return;
+    FootYawDelta=0.; LookAhead(); bBoost=false; Mirrors->Invalidate();
+    UpdatePose(); UpdateDisplays(); Notify(TEXT("Back on the bike")); SaveLocation();
 }
 
 void ARidePawn::QuitFromMenu()
@@ -271,13 +284,19 @@ void ARidePawn::RestartRide()
 
 void ARidePawn::CaptureLocation(UNeonRideSave &Save) const
 {
-    Save.Distance = Ride.s;
-    Save.Lane = FMath::Clamp(Ride.lateral, -Circuit::RideLimit, Circuit::RideLimit);
-    Save.Heading = Ride.headingError;
-    Save.Charge = Ride.charge;
-    Save.Laps = FMath::FloorToInt(Ride.laps);
-    Save.Version = 3;
-    Save.Elapsed = Ride.elapsed;
+    auto Rest=Ride;
+    for(int I=0;Rest.crashAge>=0 && I<120*12;++I) Circuit::Advance(Rest,0.,0.,0.,false,1./120.,Courier::RampOpen(Shift),true);
+    Save.Distance = Rest.s;
+    Save.Lane = Rest.foot.active? Rest.lateral : FMath::Clamp(Rest.lateral, -Circuit::RideLimit, Circuit::RideLimit);
+    Save.Heading = Rest.headingError;
+    Save.Charge = Rest.charge;
+    Save.Laps = FMath::FloorToInt(Rest.laps);
+    Save.Version = 4;
+    Save.Elapsed = Rest.elapsed;
+    Save.OnFoot=Rest.foot.active!=0.;
+    Save.FootDistance=Rest.foot.s; Save.FootLane=Rest.foot.lateral; Save.FootYaw=Rest.foot.yaw;
+    Save.BikeHeight=Rest.bikeBody.height; Save.BikePitch=Rest.bikeBody.pitch;
+    Save.BikeRoll=Rest.bikeBody.roll; Save.BikeYaw=Rest.bikeBody.yaw;
     Save.TrackedJob = Tracked;
     Save.Waypoint = Waypoint;
     Save.Panniers={Panniers[0],Panniers[1]};
@@ -292,13 +311,13 @@ void ARidePawn::CaptureLocation(UNeonRideSave &Save) const
 
 bool ARidePawn::RestoreLocation(const UNeonRideSave &Save)
 {
-    if (!Skyway || (Save.Version != 2 && Save.Version != 3) || !FMath::IsFinite(Save.Distance) ||
+    if (!Skyway || Save.Version<2 || Save.Version>4 || !FMath::IsFinite(Save.Distance) ||
         !Courier::ValidPosition(Save.Distance) || !FMath::IsFinite(Save.Lane) ||
-        FMath::Abs(Save.Lane) > Circuit::RideLimit || !FMath::IsFinite(Save.Charge) || Save.Charge < 0 ||
+        FMath::Abs(Save.Lane) > (Save.Version==4 && Save.OnFoot?Circuit::HalfWidth:Circuit::RideLimit) || !FMath::IsFinite(Save.Charge) || Save.Charge < 0 ||
         Save.Charge > 1 || Save.Laps < 0 || !FMath::IsFinite(Save.Heading))
         return false;
     Courier::Shift Restored = Courier::NewShift();
-    if (Save.Version == 3) {
+    if (Save.Version >= 3) {
         if (Save.ParcelStatus.Num()!=Courier::JobCount || Save.Visits.Num()!=Courier::AddressCount ||
             Save.PickupTimes.Num()!=Courier::JobCount || Save.OnTime.Num()!=Courier::JobCount || !FMath::IsFinite(Save.Elapsed) || Save.Elapsed<0.) return false;
         Restored.number=Save.ShiftNumber;
@@ -309,12 +328,15 @@ bool ARidePawn::RestoreLocation(const UNeonRideSave &Save)
         for(int I=0; I<Courier::AddressCount; ++I) Restored.visits[I]=Save.Visits[I];
         Courier::Sanitize(Restored);
     }
+    if(Save.Version==4 && Save.OnFoot && (!FMath::IsFinite(Save.FootDistance) || !Courier::ValidPosition(Save.FootDistance) ||
+       !FMath::IsFinite(Save.FootLane) || FMath::Abs(Save.FootLane)>20. || !FMath::IsFinite(Save.FootYaw) ||
+       !FMath::IsFinite(Save.BikeHeight) || !FMath::IsFinite(Save.BikePitch) || !FMath::IsFinite(Save.BikeRoll) || !FMath::IsFinite(Save.BikeYaw))) return false;
     Shift=Restored;
     for(int Side=0;Side<2;++Side) Panniers[Side]=Save.Panniers.IsValidIndex(Side)?Save.Panniers[Side]:-1;
     SyncPanniers();
-    Tracked=Save.Version==3 ? Save.TrackedJob : -1;
-    Waypoint=Save.Version==3 && Save.Waypoint>=0 && Save.Waypoint<Courier::AddressCount ? Save.Waypoint : -1;
-    Ride.elapsed=Save.Version==3 ? Save.Elapsed : 0.;
+    Tracked=Save.Version>=3 ? Save.TrackedJob : -1;
+    Waypoint=Save.Version>=3 && Save.Waypoint>=0 && Save.Waypoint<Courier::AddressCount ? Save.Waypoint : -1;
+    Ride.elapsed=Save.Version>=3 ? Save.Elapsed : 0.;
     RestartRide();
     Ride.s = Save.Distance;
     Ride.lateral = Save.Lane;
@@ -322,6 +344,11 @@ bool ARidePawn::RestoreLocation(const UNeonRideSave &Save)
     Mirrors->Invalidate();
     Ride.charge = Save.Charge;
     Ride.laps = Save.Laps;
+    if(Save.Version==4 && Save.OnFoot) {
+        Ride.foot={1.,Save.FootDistance,Save.FootLane,Save.FootYaw};
+        Ride.bikeBody.s=Ride.s;Ride.bikeBody.lateral=Ride.lateral;Ride.bikeBody.ground=1.;
+        Ride.bikeBody.pitch=Save.BikePitch;Ride.bikeBody.roll=Save.BikeRoll;Ride.bikeBody.yaw=Save.BikeYaw;Ride.bikeBody.height=Save.BikeHeight;
+    }
     UpdatePose();
     UpdateDisplays();
     return true;
@@ -343,13 +370,16 @@ void ARidePawn::Tick(float Dt)
     LookY(LookStick.Y * Dt * 55.f);
     Remainder += FMath::Min(double(Dt), .25);
     const bool WasCrashing = Ride.crashAge >= 0.;
+    const bool WasOnFoot=Ride.foot.active!=0.;
     constexpr double Step = 1. / 120.;
     while (Remainder >= Step)
     {
-        Circuit::Advance(Ride, Throttle, Brake, Steer, bBoost, Step, Courier::RampOpen(Shift));
+        if(Ride.foot.active) {Circuit::Walk(Ride,FootForward,Steer,FootYawDelta,Step);FootYawDelta=0.;}
+        else Circuit::Advance(Ride, Throttle, Brake, Steer, bBoost, Step, Courier::RampOpen(Shift),true);
         Remainder -= Step;
     }
     UpdateTraffic();
+    if(!WasOnFoot && Ride.foot.active) {LookAhead(); FootYawDelta=0.; bBoost=false; SaveLocation();}
     UpdatePose();
     if (!WasCrashing && Ride.crashAge >= 0.)
         Weather->PlayImpact(Ride.severity);
@@ -400,14 +430,31 @@ void ARidePawn::UpdatePose()
         return;
     const auto Road = Skyway->FrameAt(Ride.s, Ride.lateral);
     const bool Crashed = Ride.crashAge >= 0.;
+    const bool OnFoot=Ride.foot.active!=0.;
     const FQuat Heading = FRotator(0, FMath::RadiansToDegrees(Ride.headingError), 0).Quaternion();
-    SetActorLocationAndRotation(Road.GetLocation(), Crashed ? Road.GetRotation() : Road.GetRotation() * Heading);
+    SetActorLocationAndRotation(Road.GetLocation(), Crashed||OnFoot ? Road.GetRotation() : Road.GetRotation() * Heading);
     CrashFill->SetVisibility(Crashed);
     if (Ejected->IsVisible() != Crashed)
         Ejected->SetVisibility(Crashed, true);
     for (USceneComponent *Glove : Gloves)
         if (Glove)
-            Glove->SetVisibility(!Crashed);
+            Glove->SetVisibility(!Crashed && !OnFoot);
+    Instruments->SetVisibility(!OnFoot);
+    if(OnFoot) {
+        const auto& Rest=Ride.bikeBody;
+        const auto RestRotation=Road.GetRotation()*FRotator(FMath::RadiansToDegrees(Rest.pitch),FMath::RadiansToDegrees(Rest.yaw),FMath::RadiansToDegrees(Rest.roll)).Quaternion();
+        const FVector Centre=Road.TransformPosition(FVector(0,0,100.*Rest.height));
+        Body->SetWorldLocationAndRotation(Centre-RestRotation.RotateVector(FVector(0,0,54.)),RestRotation);
+        ContactSparks->SetVisibility(false);
+        const auto Ground=Skyway->FrameAt(Ride.foot.s,Ride.foot.lateral);
+        const double Moving=FMath::Min(1.,FMath::Abs(FootForward)+FMath::Abs(Steer));
+        const FVector Eye=Ground.GetLocation()+FVector(0,0,164.+FMath::Sin(Ride.elapsed*10.5)*Moving*1.25);
+        Camera->SetWorldLocationAndRotation(Eye,FRotator(-5.+LookPitch,FMath::RadiansToDegrees(Ride.foot.yaw),0.));
+        Weather->SetWorldLocation(Eye);
+        Camera->SetFieldOfView(95.);
+        return;
+    }
+    Weather->SetRelativeLocation(FVector::ZeroVector);
     if (Crashed)
     {
         const auto Shot = Circuit::Ejection(Ride);
@@ -466,7 +513,7 @@ void ARidePawn::UpdatePose()
 void ARidePawn::UpdateDisplays()
 {
     Instruments->UpdateDisplay(Ride);
-    if (Skyway) Mirrors->UpdateView(Ride.elapsed,Ride.crashAge>=0.,Skyway->FrameAt(Ride.s,Ride.lateral),Ride.headingError);
+    if (Skyway) Mirrors->UpdateView(Ride.elapsed,Ride.crashAge>=0. || Ride.foot.active,Skyway->FrameAt(Ride.s,Ride.lateral),Ride.headingError);
 }
 
 void ARidePawn::UpdateCrashEffects(const Circuit::CrashPose &Pose, const FTransform &Deck)

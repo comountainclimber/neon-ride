@@ -1,6 +1,6 @@
 # Neon Ride · Night Courier
 
-Ride Vesper's motorcycle through Rainline, Floodworks and Glass Heights. A 5.28 km express ring connects the district streets and six staffed service bays. Twenty cabs and freighters share the network. Hitting traffic or striking a barrier at speed can eject Vesper. The rider and bike bounce and slide independently, and the cockpit returns after recovery.
+Ride Vesper's motorcycle through Rainline, Floodworks and Glass Heights. A 5.28 km express ring connects the district streets and six staffed service bays. Twenty cabs and freighters share the network. A high-speed collision can throw Vesper from the motorcycle. The two slide independently. Walk to the marked motorcycle and remount when it is within 2.4 metres. Parcels stay aboard and their delivery clocks keep running.
 
 Open dispatch to reserve up to two of the eight parcels offered each shift. Follow the marked pickup or choose an address on the map to explore. At a signed fork, ride in the right lane to take the branch or keep left to continue. Slow below 11 km/h in the right lane at the counter to collect or deliver. Timed parcels can still be delivered after the requested arrival. A first delivery to Aurora Cinema opens its service ramp from Floodworks to Glass Heights. Complete all eight deliveries to start the next manifest. Client history and ramp access carry forward.
 
@@ -16,6 +16,8 @@ The three authored shifts are First Night, Regular Service and First Light. Comp
 | Pause, resume, save and quit | Esc | View / Create |
 | Dispatch and city map | M or Tab | D-pad up |
 | Collect or deliver at a service bay | E | A / Cross |
+| Walk after a crash | W / A / S / D | Left stick |
+| Remount beside the motorcycle | E | A / Cross |
 | Return to Rainline Repair | R | Y / Triangle |
 
 The two original mirror inserts show live views of the road and traffic behind the bike from a shared rear-facing camera. The physical dashboard shows speed, engine revs and nitro charge. Four engine layers respond to RPM, throttle load, shifts, braking and boost. The packaged game's audio attribution is in NeonRide/Content/Credits/engine-credits.txt. A full tank delivers about 3.8 seconds of boost. Let go to recharge after a 1.35-second cooldown. The tank refills in 8.5 seconds. Release the steering input to hold your world heading. Pausing or quitting saves your road, lane, heading, lap count, charge, waypoint and shift. Reserving, collecting or delivering also saves immediately.

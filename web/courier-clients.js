@@ -27,7 +27,7 @@ function standIn(id){
 export function streetClients(stations,loader){
   let live=0;
   const actors=stations.map(({root,id})=>{
-    const mount=new T.Group();mount.name=files[id];mount.position.set(3.95,.035,7.95);mount.rotation.y=-2.52;root.add(mount);
+    const mount=new T.Group();mount.name=files[id];mount.position.set(3.95,.004,7.95);mount.rotation.y=-2.52;root.add(mount);
     const proxy=standIn(id);mount.add(proxy);
     return {id,mount,proxy,status:'waiting',retry:0};
   });
@@ -38,6 +38,19 @@ export function streetClients(stations,loader){
       const model=gltf.scene;model.updateMatrixWorld(true);
       const bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3());
       if(!Number.isFinite(size.y)||size.y<.001)throw Error('Invalid client bounds');
+      if(a.id===2)model.traverse(obj=>{
+        if(!obj.isMesh)return;
+        // Preserve the worn hard-hat texture under the receiving window's close practical light.
+        obj.geometry.computeBoundingBox();
+        const b=obj.geometry.boundingBox,y=b.max.y-b.min.y;
+        obj.material.onBeforeCompile=shader=>{
+          shader.vertexShader='varying float helmet;\n'+shader.vertexShader.replace('#include <begin_vertex>',
+            '#include <begin_vertex>\nhelmet=smoothstep('+Number(b.min.y+.921*y).toFixed(6)+','+Number(b.min.y+.954*y).toFixed(6)+',position.y);');
+          shader.fragmentShader='varying float helmet;\n'+shader.fragmentShader.replace('#include <map_fragment>',
+            '#include <map_fragment>\ndiffuseColor.rgb*=mix(1.0,.48,helmet);').replace('#include <roughnessmap_fragment>',
+            '#include <roughnessmap_fragment>\nroughnessFactor=max(roughnessFactor,.69*helmet);');
+        };
+      });
       const body=new T.Group();const scale=1.72/size.y,center=bounds.getCenter(new T.Vector3());
       model.scale.multiplyScalar(scale);model.position.add(new T.Vector3(-center.x,-bounds.min.y,-center.z).multiplyScalar(scale));body.add(model);
       body.name='Authored client';a.mount.add(body);a.mount.remove(a.proxy);a.status='ready';
