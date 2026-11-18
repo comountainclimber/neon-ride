@@ -57,7 +57,7 @@ def build_environment(source):
         pin.set_editor_property("input_name",name)
         return pin
     sheet = import_file("signs/glyph-sheet.png","T_DashGlyphs")
-    make("M_InstrumentCluster",lambda mat,node: build_instruments(node,wire,output,named_input,mat,sheet))
+    make("M_CircuitCluster",lambda mat,node: build_instruments(node,wire,output,named_input,mat,sheet))
 
     def surface(texture, walls):
         def build(mat, node):

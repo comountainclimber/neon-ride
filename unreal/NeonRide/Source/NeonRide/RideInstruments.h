@@ -1,21 +1,21 @@
 #pragma once
-
 #include "CoreMinimal.h"
 #include "Components/StaticMeshComponent.h"
 #include "RideInstruments.generated.h"
-
-namespace NeonRide { struct FRideState; struct FStreetTraffic; }
+namespace Circuit
+{
+struct Ride;
+}
 class UMaterialInstanceDynamic;
-
 UCLASS()
 class URideInstruments : public UStaticMeshComponent
 {
     GENERATED_BODY()
-public:
+  public:
     URideInstruments();
     void StartDisplay();
-    void UpdateDisplay(float DeltaSeconds,const NeonRide::FRideState& Ride,const NeonRide::FStreetTraffic& Traffic);
-private:
+    void UpdateDisplay(const Circuit::Ride &Ride);
+
+  private:
     UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> Display;
-    float TimeUntilSample = 0.f;
 };

@@ -1,12 +1,24 @@
 # Neon Ride
 
+## Play the driving game
+
+Ride the 5.28 km elevated circuit in the browser or in Unreal Engine 5.8.4 on Windows. W/S accelerate and brake, A/D steer, and Shift fires the rechargeable nitro tank. The cockpit gauge shows the remaining charge. Traffic runs around the same loop. Closing on another vehicle too quickly ejects the rider before the bike resets in a clear lane.
+
+- [Play on Vercel](https://neon-ride-orpin.vercel.app) · [Browser source and assets](web/) · [Unreal project and build instructions](unreal/NeonRide/)
+- To run locally, serve `web/` with `python -m http.server 8000 --directory web`, then open `http://localhost:8000`.
+- GitHub deploys the `web/` directory to the linked Vercel project on updates to `main`.
+
+Both editions use the C++ simulation in `unreal/NeonRide/Source/NeonRide/CircuitCore.cpp`. With Zig 0.14.1 on PATH, run `python unreal/NeonRide/Tools/build_circuit_wasm.py` after changing it. Run the same command with `--check` to verify the packaged module. The scenery manifest in `web/scenery.json` also ships with the Unreal project.
+
+## Original film
+
 A 20-second first-person short: a motorcycle ride down a rain-soaked skyway above a far-future city,
 weaving past cabs and freighter trucks, past a giant hologram jellyfish advert and into a glass-walled
 left curve.
 
 - Finished film: [`renders/neon-ride-final.mp4`](renders/neon-ride-final.mp4) (1080p, 24 fps, 20 s + 1 s black, with sound)
 - Stills: [`docs/final_sheet.png`](docs/final_sheet.png)
-- Next step, a playable Unreal Engine build: see [`UNREAL_HANDOFF.md`](UNREAL_HANDOFF.md)
+- Original Unreal conversion brief: see [`UNREAL_HANDOFF.md`](UNREAL_HANDOFF.md)
 
 ![Stills from the film](docs/final_sheet.png)
 

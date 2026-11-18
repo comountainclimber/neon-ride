@@ -7,6 +7,6 @@ public class NeonRide : ModuleRules
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PrivateIncludePaths.Add(ModuleDirectory);
         PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "InputCore" });
-        PrivateDependencyModuleNames.AddRange(new[] { "Slate", "SlateCore" });
+        PrivateDependencyModuleNames.AddRange(new[] { "Slate", "SlateCore", "Json", "ProceduralMeshComponent" });
     }
 }

@@ -13,7 +13,7 @@ class URideWeather : public USceneComponent
     GENERATED_BODY()
 public:
     void StartWeather();
-    void UpdateWeather(float DeltaSeconds, double Speed, double Throttle, bool bWalking=false);
+    void UpdateWeather(float DeltaSeconds, double Speed, double Throttle, double Rpm=.26, bool bBoost=false);
 
 private:
     UPROPERTY() TObjectPtr<UInstancedStaticMeshComponent> Rain;

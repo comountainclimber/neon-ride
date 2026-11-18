@@ -35,7 +35,7 @@ void SRideMenu::Construct(const FArguments& Args)
                 + SVerticalBox::Slot().AutoHeight()[Label(TEXT("Neon Ride"),26,Ice)]
                 + SVerticalBox::Slot().AutoHeight().Padding(0,3,0,19)[Label(TEXT("Paused"),13,FLinearColor::White)]
                 + SVerticalBox::Slot().AutoHeight()[ResumeButton.ToSharedRef()]
-                + SVerticalBox::Slot().AutoHeight().Padding(0,5)[Button(TEXT("Return to skyway entrance"),FOnClicked::CreateSP(this,&SRideMenu::ReturnToEntrance))]
+                + SVerticalBox::Slot().AutoHeight().Padding(0,5)[Button(TEXT("Restart circuit"),FOnClicked::CreateSP(this,&SRideMenu::ReturnToEntrance))]
                 + SVerticalBox::Slot().AutoHeight()[Button(TEXT("Save and quit"),FOnClicked::CreateSP(this,&SRideMenu::Quit))]
             ]
         ]

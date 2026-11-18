@@ -1,98 +1,95 @@
 #include "RidePawn.h"
-
 #if WITH_DEV_AUTOMATION_TESTS
-#include "Camera/CameraActor.h"
-#include "Camera/CameraComponent.h"
 #include "Engine/Engine.h"
-#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/FileManager.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
-
-namespace
+class FCircuitTour : public IAutomationLatentCommand
 {
-    class FDistrictTour : public IAutomationLatentCommand
-    {
-    public:
-        FDistrictTour(APlayerController* InController, FAutomationTestBase* InTest)
-            : PC(InController), Test(InTest), Started(FPlatformTime::Seconds()) {}
+    TWeakObjectPtr<ARidePawn> Bike;
+    FAutomationTestBase *Test;
+    int Shot = 0;
+    bool Prepared = false, Requested = false;
+    double Start = 0;
+    FDateTime Previous;
 
-        virtual bool Update() override
+  public:
+    FCircuitTour(ARidePawn *Rider, FAutomationTestBase *InTest) : Bike(Rider), Test(InTest)
+    {
+    }
+    bool Update() override
+    {
+        if (!Bike.IsValid())
         {
-            if (!PC.IsValid()) { Test->AddError(TEXT("Lost player's game world")); return true; }
-            const TCHAR* Names[] = {TEXT("Skyway"), TEXT("Market"), TEXT("Overlook"), TEXT("Terrace")};
-            const FVector Eyes[] = {FVector::ZeroVector, FVector(14300,-29300,-2825), FVector(55600,-55100,500), FVector(-6650,-30700,-2830)};
-            const FVector Targets[] = {FVector::ZeroVector, FVector(20500,-29400,-2690), FVector(65800,-57600,1850), FVector(-9100,-36300,-2680)};
-            const FString Folder = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("Screenshots/DistrictTour"));
-            const FString File = Folder / (FString(Names[Shot]) + TEXT(".png"));
-            if (!bPrepared)
-            {
-                IFileManager::Get().MakeDirectory(*Folder,true);
-                PriorCapture = IFileManager::Get().GetTimeStamp(*File);
-                if (Shot == 0)
-                {
-                    OriginalTarget = PC->GetViewTarget();
-                    if (auto* Bike = Cast<ARidePawn>(PC->GetPawn())) Bike->SetActorTickEnabled(false);
-                }
-                else
-                {
-                    if (!Camera.IsValid()) Camera = PC->GetWorld()->SpawnActor<ACameraActor>();
-                    if (!Camera.IsValid()) { Test->AddError(TEXT("Could not create tour camera")); return true; }
-                    Camera->SetActorLocationAndRotation(Eyes[Shot], (Targets[Shot]-Eyes[Shot]).Rotation());
-                    Camera->GetCameraComponent()->SetFieldOfView(82);
-                    PC->SetViewTarget(Camera.Get());
-                }
-                Started = FPlatformTime::Seconds();
-                bPrepared = true;
-                return false;
-            }
-            if (!bRequested)
-            {
-                if (FPlatformTime::Seconds() - Started < 5.0) return false;
-                FScreenshotRequest::RequestScreenshot(File,false,false);
-                bRequested = true;
-                Started = FPlatformTime::Seconds();
-                return false;
-            }
-            if (FScreenshotRequest::IsScreenshotRequested() && FPlatformTime::Seconds()-Started < 20.0) return false;
-            if (IFileManager::Get().FileSize(*File) <= 0 || IFileManager::Get().GetTimeStamp(*File)<=PriorCapture)
-                Test->AddError(TEXT("A fresh rendered view was not saved: ") + File);
-            bPrepared = bRequested = false;
-            if (++Shot < 4) return false;
-            PC->SetViewTarget(OriginalTarget.Get());
-            if (auto* Bike = Cast<ARidePawn>(PC->GetPawn())) Bike->SetActorTickEnabled(true);
-            if (Camera.IsValid()) Camera->Destroy();
+            Test->AddError(TEXT("Lost bike"));
             return true;
         }
-    private:
-        TWeakObjectPtr<APlayerController> PC;
-        TWeakObjectPtr<AActor> OriginalTarget;
-        TWeakObjectPtr<ACameraActor> Camera;
-        FAutomationTestBase* Test;
-        double Started;
-        FDateTime PriorCapture;
-        int Shot = 0;
-        bool bPrepared = false, bRequested = false;
-    };
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNeonRideTour, "NeonRide.Visual.DistrictTour",
-    EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
-
-bool FNeonRideTour::RunTest(const FString& Parameters)
-{
-    for (const FWorldContext& Context : GEngine->GetWorldContexts())
-    {
-        UWorld* World = Context.World();
-        if (World && Context.WorldType == EWorldType::Game && World->GetFirstPlayerController())
+        const TCHAR *Names[] = {TEXT("Rainline"), TEXT("GlassHeights"), TEXT("VioletReach"), TEXT("CrashEject")};
+        const auto Folder = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("Screenshots/Circuit"));
+        const auto Path = Folder / (FString(Names[Shot]) + TEXT(".png"));
+        if (!Prepared)
         {
-            ADD_LATENT_AUTOMATION_COMMAND(FDistrictTour(World->GetFirstPlayerController(), this));
+            IFileManager::Get().MakeDirectory(*Folder, true);
+            Previous = IFileManager::Get().GetTimeStamp(*Path);
+            auto State = Circuit::Start();
+            State.s = Shot == 0 ? 0. : Shot == 1 ? 1110. : Shot == 2 ? 2670. : 1450.;
+            State.charge = Shot == 0 ? 1. : .45;
+            State.boost = Shot == 1;
+            State.v = Shot == 0 ? 0 : 45;
+            State.elapsed = Shot == 0 ? 0 : 30;
+            if (Shot == 3)
+            {
+                State.crashAge = .46;
+                State.crashStart = State.s - 6;
+                State.crashSpeed = 58;
+                State.crashSide = 1;
+            }
+            Bike->SetActorTickEnabled(false);
+            Bike->PreviewState(State);
+            Prepared = true;
+            Start = FPlatformTime::Seconds();
+            return false;
+        }
+        if (!Requested)
+        {
+            if (FPlatformTime::Seconds() - Start < 4.)
+                return false;
+            FScreenshotRequest::RequestScreenshot(Path, false, false);
+            Requested = true;
+            Start = FPlatformTime::Seconds();
+            return false;
+        }
+        if (FScreenshotRequest::IsScreenshotRequested() && FPlatformTime::Seconds() - Start < 20.)
+            return false;
+        if (IFileManager::Get().FileSize(*Path) <= 0 || IFileManager::Get().GetTimeStamp(*Path) <= Previous)
+            Test->AddError(TEXT("Missing fresh circuit screenshot ") + Path);
+        Prepared = Requested = false;
+        if (++Shot < 4)
+            return false;
+        Bike->PreviewState(Circuit::Start());
+        Bike->SetActorTickEnabled(true);
+        return true;
+    }
+};
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FNeonRideTour, "NeonRide.Visual.CircuitTour",
+                                 EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
+bool FNeonRideTour::RunTest(const FString &)
+{
+    for (const auto &Context : GEngine->GetWorldContexts())
+    {
+        auto *World = Context.World();
+        if (!World || Context.WorldType != EWorldType::Game)
+            continue;
+        auto *PC = World->GetFirstPlayerController();
+        if (auto *Bike = PC ? Cast<ARidePawn>(PC->GetPawn()) : nullptr)
+        {
+            ADD_LATENT_AUTOMATION_COMMAND(FCircuitTour(Bike, this));
             return true;
         }
     }
-    AddError(TEXT("Open Neon Ride in a standalone game viewport to capture the district."));
+    AddError(TEXT("Open a standalone circuit viewport"));
     return false;
 }
 #endif

@@ -49,14 +49,14 @@ void URideWeather::StartWeather()
     UpdateWeather(0.f,0,0);
 }
 
-void URideWeather::UpdateWeather(float DeltaSeconds, double Speed, double Throttle, bool bWalking)
+void URideWeather::UpdateWeather(float DeltaSeconds, double Speed, double Throttle, double Rpm, bool bBoost)
 {
     if (EngineLoop)
     {
-        EngineLoop->SetPitchMultiplier(0.68 + 0.019 * Speed);
-        EngineLoop->SetVolumeMultiplier(bWalking ? 0.f : 0.10 + 0.08 * Throttle);
+        EngineLoop->SetPitchMultiplier(0.62 + 1.08 * Rpm + (bBoost ? .12 : 0.));
+        EngineLoop->SetVolumeMultiplier(0.09 + 0.08 * Throttle + (bBoost ? .06 : 0.));
     }
-    if (WindLoop) WindLoop->SetVolumeMultiplier(0.018 + 0.15 * FMath::Square(Speed / 56.0));
+    if (WindLoop) WindLoop->SetVolumeMultiplier(0.018 + 0.21 * FMath::Square(Speed / 82.0) + (bBoost ? .035 : 0.));
     if (!Rain) return;
     RainTime += DeltaSeconds;
     const FVector Here = GetComponentLocation();

@@ -1,0 +1,28 @@
+name: Check driving parity
+on:
+  push:
+    paths:
+      - 'web/**'
+      - 'unreal/NeonRide/**'
+      - '.github/workflows/circuit.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'unreal/NeonRide/**'
+      - '.github/workflows/circuit.yml'
+permissions:
+  contents: read
+jobs:
+  circuit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check simulation and scenery artifacts
+        run: |
+          python3 unreal/NeonRide/Tools/build_circuit_wasm.py --check
+          cmp web/scenery.json unreal/NeonRide/Content/Circuit/scenery.json
+      - name: Compare native and browser driving
+        run: |
+          project=unreal/NeonRide
+          c++ -O2 -I"$project/Source/NeonRide" "$project/Source/NeonRide/CircuitCore.cpp" "$project/Tools/circuit_probe.cpp" -o /tmp/circuit-probe
+          node "$project/Tools/compare_circuit.mjs" web/circuit.wasm /tmp/circuit-probe

@@ -1,62 +1,46 @@
-"""Draw the film instrument cluster in UV space, driven by the possessed motorcycle."""
+"""Build the physical circuit instrument cluster and its rechargeable nitro gauge."""
 import unreal as ue
 
 
 def build_instruments(node, wire, output, named_input, mat, sheet):
-    mat.set_editor_property("shading_model",ue.MaterialShadingModel.MSM_UNLIT)
-    mat.set_editor_property("two_sided",True)
-    uv = node(ue.MaterialExpressionTextureCoordinate,-620,0)
-    telemetry = node(ue.MaterialExpressionVectorParameter,-620,120,parameter_name="Telemetry")
-    traffic = node(ue.MaterialExpressionVectorParameter,-620,240,parameter_name="Traffic")
-    glyphs = node(ue.MaterialExpressionTextureObject,-620,350,texture=sheet)
-    display = node(ue.MaterialExpressionCustom,-100,50,
-        inputs=[named_input(k) for k in ("UV","Data","Blips","Glyphs")],
+    mat.set_editor_property("shading_model", ue.MaterialShadingModel.MSM_UNLIT)
+    mat.set_editor_property("two_sided", True)
+    uv = node(ue.MaterialExpressionTextureCoordinate, -600, 0)
+    data = node(ue.MaterialExpressionVectorParameter, -600, 100, parameter_name="Telemetry")
+    nitro = node(ue.MaterialExpressionVectorParameter, -600, 200, parameter_name="Nitro")
+    glyphs = node(ue.MaterialExpressionTextureObject, -600, 300, texture=sheet)
+    display = node(ue.MaterialExpressionCustom, -100, 50,
+        inputs=[named_input(k) for k in ("UV", "Data", "NitroState", "Glyphs")],
         output_type=ue.CustomMaterialOutputType.CMOT_FLOAT3, code="""
 float2 p=UV;
-float3 teal=float3(.13,.86,.93), hot=float3(.98,.09,.42), amber=float3(1.,.48,.10);
-float3 c=float3(.002,.011,.017);
+float3 teal=float3(.17,.88,.95), amber=float3(1.,.49,.08);
+float3 c=float3(.003,.009,.014);
 float2 edge=min(p,1.-p);
-c+=teal*.55*(1.-smoothstep(.003,.009,min(edge.x,edge.y*.35)));
-c+=teal*.25*(1.-smoothstep(.001,.004,min(abs(p.x-.45),abs(p.x-.71))));
-float2 dial=(p-float2(.225,.80))*float2(3.09,-1.);
-float radius=length(dial);
-float angle=atan2(dial.y,dial.x);
-float arc=saturate((3.04-angle)/2.94);
-if (angle>.1 && angle<3.04 && radius>.49 && radius<.63 && frac(arc*26.)<.76)
-    c+=lerp(teal,hot,step(.80,arc))*(arc<=Data.r ? 2.3 : .36);
-float2 digits=(p-float2(.105,.55))/float2(.084,.20);
+c+=teal*.48*(1.-smoothstep(.002,.01,min(edge.x,edge.y*.34)));
+float2 digits=(p-float2(.042,.28))/float2(.112,.50);
 if (all(digits>=0) && digits.x<3 && digits.y<1) {
-    int kmh=(int)round(Data.r*202.);
+    int kmh=(int)round(Data.r*300.);
     int col=(int)digits.x;
     int digit=(col==0 ? kmh/100 : (col==1 ? kmh/10 : kmh))%10;
     int cell=digit+(digit>=4 ? 1 : 0);
     float2 atlas=(float2(41,22)+(float2(cell%8,cell/8)+frac(digits))*float2(182,125))/float2(1536,1024);
-    float glyph=Texture2DSampleLevel(Glyphs,GlyphsSampler,atlas,0).r;
-    c+=glyph*float3(.91,1.,1.)*1.8;
+    c+=Texture2DSampleLevel(Glyphs,GlyphsSampler,atlas,0).r*float3(.85,.97,1.)*1.7;
 }
-float2 h=(p-float2(.58,.37))*float2(3.09,1.);
-float distanceToHorizon=abs(dot(h,float2(-sin(Data.g),cos(Data.g))));
-if (abs(h.x)<.29) c+=teal*(1.-smoothstep(.012,.026,distanceToHorizon));
-float2 bars=p-float2(.475,.63);
-if (bars.x>=0 && bars.x<.21 && bars.y>=0 && bars.y<.23) {
-    float stepId=floor(bars.x*65.);
-    float value=.21+.16*cos(stepId*2.2)+.46*Data.r+.14*Data.b;
-    if (bars.y>(1.-value)*.23 && frac(bars.x*65.)<.68) c+=teal*.85;
-}
-float2 chart=(p-float2(.735,.11))/float2(.235,.78);
-if (all(chart>=0) && all(chart<1)) {
-    float guide=min(abs(chart.x-.32),abs(chart.x-.68));
-    c+=teal*.30*(1.-smoothstep(.012,.026,guide));
-    float player=length((chart-float2(.5,.78))*float2(.95,1));
-    c+=teal*(1.-smoothstep(.034,.060,player));
-    float dot1=length((chart-Blips.rg)*float2(.95,1));
-    float dot2=length((chart-Blips.ba)*float2(.95,1));
-    c+=amber*2.*(1.-smoothstep(.03,.055,min(dot1,dot2)));
+float2 rev=(p-float2(.044,.12))/float2(.91,.075);
+if(all(rev>=0)&&all(rev<1)&&frac(rev.x*32.)<.78)
+    c+=lerp(teal,amber,step(.83,rev.x))*(rev.x<Data.g?1.4:.12);
+float2 tank=(p-float2(.44,.58))/float2(.51,.22);
+if(all(tank>=0)&&all(tank<1)&&frac(tank.x*17.)<.82)
+    c+=lerp(teal,amber,NitroState.g)*(tank.x<NitroState.r?1.85:.14);
+float2 label=(p-float2(.448,.29))/float2(.016,.037);
+if(all(label>=0)&&label.x<29&&label.y<7) {
+    int glyph=int(label.x)/6, col=int(label.x)%6, row=int(label.y);
+    int letters[35]={17,25,25,21,19,19,17,31,4,4,4,4,4,31,31,4,4,4,4,4,4,30,17,17,30,20,18,17,14,17,17,17,17,17,14};
+    if(col<5 && ((letters[glyph*7+row]>>(4-col))&1)) c+=lerp(teal,amber,NitroState.g)*1.55;
 }
 return c;""")
-    wire(uv,display,"UV")
-    # Vector parameter's default pin supplies RGB. The explicit RGBA pin also carries the second blip's Y.
-    wire(telemetry,display,"Data")
-    wire(traffic,display,"Blips","RGBA")
-    wire(glyphs,display,"Glyphs")
-    output(display,ue.MaterialProperty.MP_EMISSIVE_COLOR)
+    wire(uv, display, "UV")
+    wire(data, display, "Data")
+    wire(nitro, display, "NitroState")
+    wire(glyphs, display, "Glyphs")
+    output(display, ue.MaterialProperty.MP_EMISSIVE_COLOR)

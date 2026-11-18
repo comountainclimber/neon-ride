@@ -1,37 +1,39 @@
-# Neon Ride · Skyway district
+# Neon Ride · Night Circuit
 
-Open `NeonRide.uproject` in Unreal Engine 5.8.4 and press **Play**. A source checkout on Windows needs Visual Studio 2022 C++ Build Tools and a Windows SDK. The game creates its district on the engine's Entry map when play begins.
+Ride a 5.28 km elevated circuit through Rainline, Glass Heights, Violet Reach and Lower Ring. The route climbs from 26 to 85 metres, banks through the skyline and returns to the start. Fourteen cabs and freighters share the lanes. A high-speed rear-end collision launches Vesper into a 3.2-second exterior crash sequence before the cockpit returns.
 
-Start parked on the film's elevated skyway. Ride into the long left curve to see the pulsing jellyfish above the Overlook, or brake at the amber gantry and turn down the market ramp. Walk between the lantern stalls, or ride west to the cab platforms at Transit Yard. The terrace lies 30 m below the skyway. Three ramps connect the upper and lower streets in both directions.
-
-| Ride | Keyboard and mouse | Gamepad |
+| Action | Keyboard and mouse | Gamepad |
 | --- | --- | --- |
-| Throttle / brake | W / S | Right / left trigger |
-| Steer | A / D | Left stick |
+| Accelerate / brake | W / S | Right / left trigger |
+| Steer across the road | A / D | Left stick |
+| Hold nitro | Shift | X / Square |
 | Look around | Mouse | Right stick |
 | Face forward | C | Press right stick |
-| Toggle district map | M | Menu / Options |
-| Dismount when stopped / remount beside bike | E | A / Cross |
-| Walk / strafe on foot | W, A, S, D | Left stick |
-| Pause, resume or save and quit | Esc | View / Create |
-| Return to the skyway entrance | R | Y / Triangle |
+| Pause, resume, save and quit | Esc | View / Create |
+| Restart at the circuit entrance | R | Y / Triangle |
 
-Release the throttle to coast. Brake to park and use steering to turn around, even at a standstill. The map marks your location and the bike you left behind. The standalone game remembers your position when you dismount, remount, pause or quit. Reloading places the bike at rest. Ambient cabs and freighters circulate between the two levels. Vehicle contact slows the bike in place.
+The physical dashboard shows speed, engine revs and nitro charge. A full tank delivers about 3.8 seconds of boost. Let go to recharge after a 1.35-second cooldown. The tank refills in 8.5 seconds. Pausing or quitting saves your distance, lane, lap count and charge. Your next session starts at rest.
 
-## Implementation
+## Run and build
 
-- `District.*` defines driveable surfaces, block footprints, landmarks' locations and the traffic loop in metres. Surface selection respects elevation where streets cross beneath the skyway.
-- `RideHandling.*` implements throttle, braking and free heading at 120 Hz. Turn rate and speed determine bike lean.
-- `RidePawn.*` places the bike and independent first-person camera. The helmet rolls 42% with the bike and the lens widens with speed.
-- `Skyway.*` builds the film's 300 m straight, 90 m curvature transition and 340 m-radius left curve, plus a connected lower district.
-- `FilmArt.*` and `FilmDistrict.*` place the film bike, mirrored gloves, street vehicles, eight flying cars, skyline towers and roadside props. Simple geometry defines the drivable surfaces and street-block collisions.
-- `TrafficRun.*` handles street traffic. `NeonRideGameMode.*` supplies spawn, light, location display and map.
-- The bike's physical instrument panel uses the original glyph sheet. The speed arc, horizon and traffic blips respond to the ride. The headlight illuminates the wet street ahead.
+Open `NeonRide.uproject` in Unreal Engine 5.8.4 on Windows and press **Play**. A source build uses Visual Studio C++ Build Tools with a Windows SDK. The default Entry map constructs the circuit automatically. The standalone packaged game launches from `Windows/NeonRide.exe` in the archive.
 
-Run the `NeonRide.Exploration` automation group in a standalone game session to check controls, ramp traversal, vehicle occupancy, map toggle and camera behavior. The Blender film and `UNREAL_HANDOFF.md` on the repository's main branch are the visual references for the art pass.
+The editor imports all 18 film GLBs from the repository's `models/` folder or a prepared `SourceArt/Models/` folder. It imports textures, signs and the original rain, engine and wind recordings from the repository or `SourceArt/`. Vesper's rigged animation and fallback mesh live in `SourceArt/Rider/`. Wait for the first import to finish before playing.
 
-## Original film models
+From PowerShell in this project directory, set `$ue` to the engine installation and run:
 
-In a full repository checkout, the first editor launch imports the 18 GLBs from `models/` into `/Game/Film`. A standalone project can carry prepared GLBs in `SourceArt/Models`. Allow the first import to finish before playing or packaging. The importer also builds the wet deck, illuminated facades, painted skyline panels and glyph signs using the film's `textures/` and `signs/` folders. Its rain, wind and engine loops come from the original `audio/wav/` recordings.
+```powershell
+$ue = 'D:/UE_5.8'
+$p = (Resolve-Path NeonRide.uproject).Path
+& "$ue/Engine/Build/BatchFiles/Build.bat" NeonRideEditor Win64 Development "-Project=$p" -WaitMutex
+& "$ue/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" $p -run=pythonscript "-script=$PWD/Tools/import_assets.py" -unattended
+& "$ue/Engine/Build/BatchFiles/RunUAT.bat" BuildCookRun "-project=$p" -nop4 -platform=Win64 -clientconfig=Development -build -cook -map=/Engine/Maps/Entry -stage -pak -archive "-archivedirectory=$PWD/../NeonRideBuild" -unattended
+```
 
-For smaller game assets, run `Tools/prepare_models.py <originals> <prepared> --gltfpack <executable>` using Python with numpy and Pillow and gltfpack 1.3. Set `NEON_RIDE_MODELS` to the prepared folder before the first import. This reduces geometry, resizes textures by model type and derives an emissive mask from the painted base colour. The source GLBs remain available for future art revisions.
+## Shared simulation and art
+
+`Source/NeonRide/CircuitCore.*` runs the same 120 Hz simulation natively and as WebAssembly in the browser. Both builds use the same baked `scenery.json` placements. The Unreal copy is staged from `Content/Circuit/`. Positions and dimensions in the manifest are in metres, with Unreal X/Y horizontal, Z up and yaw in radians. Film geometry, material textures, mesh axes and the helmed rider are imported into Unreal units at build time.
+
+The Unreal road uses a continuous banked mesh, wet asphalt, lane paint, parapets and edge lighting. The rider camera rolls with the bike and the lens widens with speed. Vesper's crash camera tracks her pelvis as the animated character separates from the bike. The production rig is 1.75 m tall with 53 weighted Mixamo joints. The exterior animation samples the shared crash clock.
+
+Run `Automation RunTests NeonRide.` in a standalone Development game to check lap closure, boost, traffic impacts, automatic recovery, save/restore and the physical instrument display. The visual tour writes cockpit and ejection captures to `Saved/Screenshots/Circuit/`.
