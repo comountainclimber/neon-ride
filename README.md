@@ -1,5 +1,52 @@
 # Neon Ride
 
+A twenty-second Blender film grew into a motorcycle courier game. The way to see what changed is to watch the ride, then take the handlebars yourself.
+
+**[▶ Play Night Courier](https://neon-ride-orpin.vercel.app/)** · **[↓ Get the original film with sound (MP4)](https://raw.githubusercontent.com/comountainclimber/neon-ride/main/renders/neon-ride-final.mp4)** · [Controls and build instructions](#ride-the-night-shift)
+
+## From concept art to Night Courier
+
+### 01 · Draw the route
+
+Six rounds of concept art narrowed the ride to two views. On the open skyway you can see the street grid far below. In the glass-walled turn, the jellyfish hologram almost fills the rider’s field of view.
+
+[![The two approved concept frames, an open skyway and a glass-walled curve](docs/timeline/skyway-concepts.jpg)](concepts/)
+
+### 02 · Storyboard the pass
+
+The film is one continuous shot. These six boards set the timing of the traffic passing the rider, the jellyfish reveal and the lean into the last bend. Watch the handlebars across the bottom of the frames.
+
+[![Six storyboard panels following the same cockpit through traffic and into a banked turn](storyboard/storyboard.jpg)](storyboard/)
+
+### 03 · Put the drawings on wheels
+
+The bike started with front, rear and side drawings. Tripo turned the references into textured GLBs. These Blender inspection renders show the bike from two angles and the cab it passes on the skyway. The mirrors and fairing are easier to spot here than at speed.
+
+[![Studio renders of the actual 3D motorcycle from two angles and the rounded skyway cab](docs/timeline/blender-models.jpg)](models/)
+
+[Bike reference drawings](refs/bike-sheet.jpg) · [3D models](models/) · [Blender inspection script](scripts/inspect_glb.py)
+
+### 04 · Render the twenty-second film
+
+A Python script places the road, traffic and camera in Blender. The jellyfish has its own animation, and the instrument panel follows the ride. The final pass adds rain, passing-vehicle sounds and a second of black at the end.
+
+<a href="https://raw.githubusercontent.com/comountainclimber/neon-ride/main/renders/neon-ride-final.mp4">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/timeline/film-still.jpg">
+    <img src="docs/timeline/night-ride.webp" width="100%" alt="Animated preview of the finished Blender film, riding through traffic past the jellyfish hologram">
+  </picture>
+</a>
+
+[Full film with sound · 1080p MP4](https://raw.githubusercontent.com/comountainclimber/neon-ride/main/renders/neon-ride-final.mp4) · [Full-resolution stills](docs/final_sheet.png) · [Scene script](scripts/build_ride.py)
+
+### 05 · Hand the route to the player
+
+The first Unreal prototype put the film bike on a skyway you could steer. The city grew into three connected districts, with dispatch jobs, delivery windows and a film reel bound for Aurora Cinema. The browser and Unreal editions share the C++ driving and courier rules. Here’s the view from the saddle outside Rainline Repair.
+
+[![In-game screenshot from Vesper’s motorcycle showing the Rainline Repair stop, mirrors and speedometer](docs/timeline/courier-cockpit.jpg)](https://neon-ride-orpin.vercel.app/)
+
+**[▶ Take the night shift](https://neon-ride-orpin.vercel.app/)** · [Browser source](web/) · [Unreal project](unreal/NeonRide/) · [Original film-to-game brief](UNREAL_HANDOFF.md)
+
 ## Ride the night shift
 
 Play Vesper's motorcycle courier shift in the browser or Unreal Engine 5.8.4 on Windows. The 5.28 km express ring connects Rainline's streets, the Floodworks Canal and the loading docks in Glass Heights. The entire road network covers 11.51 km. Ride in the right lane at a signed exit to take the branch. The center and left lanes continue ahead.
@@ -20,18 +67,6 @@ Both sets of handlebar mirrors show the road behind the bike. On a phone, slide 
 - The four-layer motorcycle mix uses real motorcycle recordings by dklon and a Kenney turbine layer. [Audio credits and licenses](web/assets/audio/engine-credits.txt)
 
 Both editions use the same C++ driving and courier rules in `unreal/NeonRide/Source/NeonRide/`. With Zig 0.14.1 on PATH, run `python unreal/NeonRide/Tools/build_circuit_wasm.py` after changing them. Run the same command with `--check` to verify the packaged module. Run `node unreal/NeonRide/Tools/check_courier.mjs web/circuit.js` to drive the delivery regression. The original and courier scenery manifests also ship with Unreal.
-
-## Original film
-
-A 20-second first-person short: a motorcycle ride down a rain-soaked skyway above a far-future city,
-weaving past cabs and freighter trucks, past a giant hologram jellyfish advert and into a glass-walled
-left curve.
-
-- Finished film: [`renders/neon-ride-final.mp4`](renders/neon-ride-final.mp4) (1080p, 24 fps, 20 s + 1 s black, with sound)
-- Stills: [`docs/final_sheet.png`](docs/final_sheet.png)
-- Original Unreal conversion brief: see [`UNREAL_HANDOFF.md`](UNREAL_HANDOFF.md)
-
-![Stills from the film](docs/final_sheet.png)
 
 ## How it was made
 
